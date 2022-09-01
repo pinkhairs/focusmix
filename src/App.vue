@@ -49,16 +49,16 @@
           <button type="button" :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode">
             <img src="./assets/images/lightning.svg" alt="Lightning Mode" aria-label="Halves the remaining time" />
           </button>
-          <span class="tooltiptext">Lightning mode: halves the remaining time</span>
+          <span class="tooltiptext">Lightning</span>
         </div>
         <div class="tooltip">
           <button @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
-          <span class="tooltiptext">Shuffle tasks</span>
+          <span class="tooltiptext">Shuffle</span>
         </div>
         <div class="browse">
           <div class="muted tooltip">
-            <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Clear progress and start task over (your notes will not be affected)" /></button>
-            <span class="tooltiptext">Clear progress and start task over (your notes will not be affected)</span>
+            <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
+            <span class="tooltiptext">Start over</span>
           </div>
           <div>
             <button v-if="working" type="button" @click="pause()"><img src="./assets/images/pause.svg" alt="Pause" aria-label="Pause task" /></button>
@@ -66,7 +66,7 @@
           </div>
           <div class="muted tooltip">
             <button @click="skip(false)" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
-            <span class="tooltiptext">Go to next task</span>
+            <span class="tooltiptext">Next task</span>
           </div>
         </div>
         <div class="tooltip">
@@ -74,35 +74,32 @@
           <button v-else @click="autoplay = !autoplay" type="button" class="muted"><img src="./assets/images/autoplay-off.svg" alt="Autoplay" aria-label="Don’t next task automatically" /></button>
           <span class="tooltiptext">Autoplay</span>
         </div>
-        <div class="tooltip">
           <ul class="folders">
             <li><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
-              <div class="queue-list" v-if="queueOpen">
-                <div>
-                  <div v-if="shuffle">
-                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
-                      <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
-                      <button v-if="tasks.length > 1 && currentTask.id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
-                    </div>
+            <div class="queue-list" v-if="queueOpen">
+              <div>
+                <div v-if="shuffle">
+                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
+                    <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
+                    <button v-if="tasks.length > 1 && currentTask.id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
                   </div>
-                  <draggable v-else :list="tasks" group="tasks-todo">
-                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
-                      <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
-                      <button v-if="tasks.length > 1 && currentTask.id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
-                    </div>
-                  </draggable>
                 </div>
-                <div>
-                  <form @submit.prevent="addNewTask" class="add-new-task">
-                    <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
-                    <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
-                  </form>
-                </div>
+                <draggable v-else :list="tasks" group="tasks-todo">
+                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
+                    <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && currentTask.id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                  </div>
+                </draggable>
               </div>
-            </li>
-          </ul>
-          <span class="tooltiptext">Task list</span>
-        </div>
+              <div>
+                <form @submit.prevent="addNewTask" class="add-new-task">
+                  <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
+                  <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
+                </form>
+              </div>
+            </div>
+          </li>
+        </ul>
       </div>
       <div class="mark-complete">
         <button @click="skip(true)" v-if="currentTask.completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
@@ -168,7 +165,7 @@
     </div>
     <div class="modal" v-if="modal === 'deleteFolder'">
       <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Delete: <code>{{selectedFolder.name}}</code>?</h2>
+      <h2>Delete {{selectedFolder.name}}?</h2>
       <p>This is irreversible!</p>
       <form>
         <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteFolder(selectedFolder.id); modal = false">Delete</button></p>
@@ -222,6 +219,7 @@ import {firebase, db, auth} from './db'
 import { v4 as uuidv4 } from 'uuid';
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css';
+import Times from './times.json'
 
 export default {
   name: 'App',
@@ -239,10 +237,7 @@ export default {
         '#f2f2f2'
       ],
       timer: null,
-      timeOptions: [
-        {label: '1 minute', value: 60},
-        {label: '2 minute', value: 120}
-      ],
+      timeOptions: Times,
       tasks: [],
       shuffledTasks: [],
       note: 'ZxIYZkuMfbS41IAHHDck',
@@ -517,6 +512,13 @@ export default {
       db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).get().then((doc) => { 
         this.currentTask = doc.data()
         this.$refs.editor._data.state.editor.render(doc.data().notes)
+
+        db.collection('Users').doc(this.uid).get((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            workingTask: this.currentTask.id
+            }, { merge: true }
+          )
+        })
       })
     },
     changeFolder(folder) {
@@ -555,9 +557,10 @@ export default {
       this.newFolderName = 'Welcome to Focusmix';
       this.currentFolder = this.addNewFolder();
       this.newTaskTitle = 'Find out what this is about'
-      this.currentTask = this.addNewTask();
+      this.currentTask = this.addNewTask(true);
   
       db.collection('Users').doc(this.uid).get().then(doc => {
+        this.folders = doc.data().folders
         db.collection('Users').doc(this.uid).set({
           workingTask: this.currentTask.id,
           workingFolder: this.currentFolder
@@ -655,9 +658,11 @@ export default {
           this.currentTask.elapsed = 100
           this.currentTask.completed = true
           var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.currentTask.id))
-          let currentTaskInList = this.tasks;
-          currentTaskInList[currentTaskIndex].completed = true;
-          this.$set.tasks(currentTaskIndex, currentTaskInList[currentTaskIndex])
+
+          var original = this.tasks
+          var copy = [].concat(original);
+          copy[currentTaskIndex].completed = true;
+          this.tasks = copy
         }
         setTimeout(() => {
           this.changeTask(newCurrentTask.id)
@@ -677,6 +682,7 @@ export default {
           if (!taskLength) {
             taskLength = { label: '1 hour', value: 3600 }
           }
+          console.log({data})
           db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).set({
             notes: data,
             title: this.currentTask.title,
@@ -735,10 +741,48 @@ export default {
       });
       this.waitingForSignin = true;
     },
-    addNewTask() {
+    addNewTask(seed = false) {
       this.saving = true;
       var newTaskId = uuidv4();
       var newTask = {title: this.newTaskTitle, id: newTaskId, elapsed: 0, length: {label: '1 minute', value: 60}, completed: false, notes: {blocks: [], version: "2.12.4"}};
+      if (seed) {
+        newTask.notes.blocks = [
+          {
+            data: {
+              text: 'Hi, this is another tool for motivation to get tasks done.'
+            },
+            id: "moTtRFW4VL",
+            type: "paragraph"
+          },
+          {
+            data: {text: '▶️ Hit the play button.'},
+            id: "xGAIubcQNS",
+            type: "paragraph"
+          },
+          {
+            data: {text: 'As you can see, the page is a progress bar. (Click the color bar the left side to change to your favorite.)'},
+            id: "HcSf6A18HS",
+            type: "paragraph"
+          },
+          {
+            data: {text: 'Create folders on the left side and organize tasks on the right side.'},
+            id: "l8gu-1k-6S",
+            type: "paragraph"
+          },
+          {
+            data: {text: 'Other features include lightning mode ⚡️ (halves the remaining time), shuffle, and autoplay.'},
+            id: "seYBLpHl2W",
+            type: "paragraph"
+          },
+          {
+            data: {text: 'Enjoy!'},
+            id: "sQWPzD4NOz",
+            type: "paragraph"
+          }
+        ]
+      } else {
+        newTask.notes.blocks = [{type: 'paragraph', data: { text: 'These are notes. Click to edit them.'}}]
+      }
       this.tasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
       this.shuffledTasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
 
@@ -747,7 +791,7 @@ export default {
           id: newTaskId,
           title: this.newTaskTitle,
           length: { value: 3600, label: '1 hour'},
-          notes: {blocks: [{type: 'paragraph', data: { text: 'This is a sample task. Click the edit button to edit it.'}}], version: "2.12.4"},
+          notes: newTask.notes,
           elapsed: 0,
           completed: false
         }).then(() => {
@@ -755,6 +799,7 @@ export default {
           this.newTaskTitle = '';
         })
       })
+      this.$refs.editor._data.state.editor.render(newTask.notes)
       return newTask;
     },
     addNewFolder() {
