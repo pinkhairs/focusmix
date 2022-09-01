@@ -556,7 +556,7 @@ export default {
 
       this.newFolderName = 'Welcome to Focusmix';
       this.currentFolder = this.addNewFolder();
-      this.newTaskTitle = 'Find out what this is about'
+      this.newTaskTitle = 'Check it out'
       this.currentTask = this.addNewTask(true);
   
       db.collection('Users').doc(this.uid).get().then(doc => {
@@ -749,7 +749,7 @@ export default {
         newTask.notes.blocks = [
           {
             data: {
-              text: 'Hi, this is another tool for motivation to get tasks done.'
+              text: 'Hi, Focusmix is another tool for motivation to get tasks done.'
             },
             id: "moTtRFW4VL",
             type: "paragraph"
@@ -873,12 +873,12 @@ body {
 }
 @media (min-width: 1024px) {
   .container {
-    width: 800px;
+    width: 650px;
   }
 }
 @media (min-width: 1024px) {
   .controls {
-    width: 960px;
+    width: 800px;
   }
 }
 @media (min-width: 1024px) {
