@@ -195,8 +195,9 @@
     <div class="modal" v-if="modal === 'about'" style="font-size: 18px">
       <button @click="modal = false" type="button" class="close-button">&times;</button>
       <h2>Hey, I’m Amí ✌🏼</h2>
-      <p>I’m a <a href="https://naeily.com" target="_blank">freelance web designer and developer</a> based in New Mexico. I built Focusmix with Vue.js, Firebase, and Editor.js.</p><p>Need support? Email <a href="mailto:ami@naeily.com">ami@naeily.com</a>.</p>
+      <p>I’m a <a href="https://naeily.com" target="_blank">freelance web designer and developer</a> based in New Mexico. I built Focusmix with Vue.js, Firebase, and Editor.js.</p>
       <p>Focusmix is in <strong>ALPHA</strong>: Do not use for anything important for now. <a href="https://subscribepage.io/BNo1VG">Sign up for email updates</a>.</p>
+      <p>Need support? Email <a href="mailto:ami@naeily.com">ami@naeily.com</a>.</p>
       <form>
         <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button @click="modal = false" type="submit">OK</button></p>
       </form>
