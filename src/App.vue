@@ -733,7 +733,7 @@ export default {
     },
     sendEmailSignIn() {
       auth.sendSignInLinkToEmail(this.email, {
-        url: 'http://localhost:8080',
+        url: 'https://focusmix.website',
         handleCodeInApp: true
       })
       .then(() => {
