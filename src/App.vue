@@ -219,7 +219,7 @@ import {firebase, db, auth} from './db'
 import { v4 as uuidv4 } from 'uuid';
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css';
-import Times from './times.json'
+import Times from './assets/json/times.json'
 
 export default {
   name: 'App',
