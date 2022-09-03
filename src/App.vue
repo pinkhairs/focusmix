@@ -173,7 +173,7 @@
     </div>
     <div class="modal" v-if="modal === 'deleteTask'">
       <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Delete: <code>{{selectedTask.name}}</code>?</h2>
+      <h2>Delete: {selectedTask.name}}?</h2>
       <p>This is irreversible! Notes will be gone.</p>
       <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask.id); modal = false">Delete</button></p>
     </div>
@@ -340,11 +340,13 @@ export default {
     auth.onAuthStateChanged((user) => {
       if (user) {
         this.uid = user.uid
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          if (user.email && doc.exists) {
-            this.premium = doc.data().premium
-          }
-        });
+        setTimeout(() => {
+          db.collection('Users').doc(this.uid).get().then((doc) => {
+            if (user.email && doc.exists) {
+              this.premium = doc.data().premium
+            }
+          });
+        }, 1111);
 
         if (user.email) {
           this.email = user.email
@@ -422,34 +424,36 @@ export default {
     },
     renameFolder(folder) {
       db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).get().then(() => {
-        var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
-        var original = this.folders
-        var newFolders = [].concat(original);
+        setTimeout(() => {
+          var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
+          var original = this.folders
+          var newFolders = [].concat(original);
 
-        newFolders[selectedFolderIndex] = {
-          name: this.renameFolderName,
-          id: folder.id
-        }
+          newFolders[selectedFolderIndex] = {
+            name: this.renameFolderName,
+            id: folder.id
+          }
 
-        if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
-          this.currentFolder.name = this.renameFolderName
-        }
+          if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
+            this.currentFolder.name = this.renameFolderName
+          }
 
-        db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
+          db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
           name: this.renameFolderName
-        }, { merge: true }).then(() => {
-          this.renameFolderName = ''
-        })
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            folders: newFolders,
-            workingFolder: this.currentFolder
           }, { merge: true }).then(() => {
-            this.saving = false;
+            this.renameFolderName = ''
           })
-        })
-        this.folders = newFolders
-      });
+          db.collection('Users').doc(this.uid).get().then((doc) => {
+            db.collection('Users').doc(this.uid).set({
+              folders: newFolders,
+              workingFolder: this.currentFolder
+            }, { merge: true }).then(() => {
+              this.saving = false;
+            })
+          })
+          this.folders = newFolders
+        });
+      }, 1111);
     },
     deleteFolder(folder) {
       db.collection('Users').doc(this.uid).collection('Folders').doc(folder).delete().then(() => {
@@ -458,11 +462,13 @@ export default {
         var newFolders = [].concat(original);
         newFolders.splice(selectedFolderIndex, 1)
         this.folders = newFolders
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            folders: newFolders,
-          }, { merge: true })
-        })
+        setTimeout(() => {
+          db.collection('Users').doc(this.uid).get().then((doc) => {
+            db.collection('Users').doc(this.uid).set({
+              folders: newFolders,
+            }, { merge: true })
+          })
+        }, 1111);
       });
     },
     deleteTask(task) {
@@ -489,71 +495,79 @@ export default {
       this.newFolderName = newFolderName
       var newFolder = this.addNewFolder();
       this.justCopied = newFolder.id;
-      
-      db.collection('Users').doc(this.uid).collection('Folders').doc(oldFolder.id).get().then((doc) => { 
-        var newTask = {}
-        var tasks = doc.data().tasks;
-        if (tasks.length) {
-          var newTasks = []
-          for (var i = 0; i < doc.data().tasks.length; i++) {
-            tasks[i] = doc.data().tasks[i]
-            this.newTaskTitle = tasks[i].title
-            newTask = this.addNewTask()
-            newTask.completed = false
-            newTasks.push(newTask)
+
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Folders').doc(oldFolder.id).get().then((doc) => { 
+          var newTask = {}
+          var tasks = doc.data().tasks;
+          if (tasks.length) {
+            var newTasks = []
+            for (var i = 0; i < doc.data().tasks.length; i++) {
+              tasks[i] = doc.data().tasks[i]
+              this.newTaskTitle = tasks[i].title
+              newTask = this.addNewTask()
+              newTask.completed = false
+              newTasks.push(newTask)
+            }
+            db.collection('Users').doc(this.uid).collection('Folders').doc(newFolder.id).set({
+              name: newFolderName,
+              tasks: newTasks
+            })
           }
-          db.collection('Users').doc(this.uid).collection('Folders').doc(newFolder.id).set({
-            name: newFolderName,
-            tasks: newTasks
-          })
-        }
-      })
+        })
+      }, 1111)
     },
     changeTask(taskId) {
       this.working = false
-      db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).get().then((doc) => { 
-        this.currentTask = doc.data()
-        this.$refs.editor._data.state.editor.render(doc.data().notes)
+        setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).get().then((doc) => { 
+          this.currentTask = doc.data()
+          this.$refs.editor._data.state.editor.render(doc.data().notes)
 
-        db.collection('Users').doc(this.uid).get((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            workingTask: this.currentTask.id
-            }, { merge: true }
-          )
+          db.collection('Users').doc(this.uid).get((doc) => {
+            db.collection('Users').doc(this.uid).set({
+              workingTask: this.currentTask.id
+              }, { merge: true }
+            )
+          })
         })
-      })
+      }, 1111)
     },
     changeFolder(folder) {
       this.currentFolder = folder
-      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-        if (doc.data().tasks) {
-          this.tasks = doc.data().tasks
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
-            this.currentTask = doc.data()
-            this.$refs.editor._data.state.editor.render(doc.data().notes)
-          })
-        } else {
-          var newTaskId = uuidv4();
-          var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [], version: "2.12.4"}};
-          this.tasks = [newTask]
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+          if (doc.data().tasks) {
+            this.tasks = doc.data().tasks
+            db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
+              this.currentTask = doc.data()
+              this.$refs.editor._data.state.editor.render(doc.data().notes)
+            })
+          } else {
+            var newTaskId = uuidv4();
+            var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [], version: "2.12.4"}};
+            this.tasks = [newTask]
 
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
-              db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
-          })
-        }
-      })
+            db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
+                db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
+            })
+          }
+        })
+      }, 1111)
     },
     createWelcome() {
-      db.collection('Users').doc(this.uid).get().then((doc) => {
-        db.collection('Users').doc(this.uid).set({
-          options: {
-            lightningMode: this.lightningMode,
-            shuffle: this.shuffle,
-            autoplay: this.autoplay,
-            color: this.activeColor
-          },
-          premium: false
-        }, {merge: true})
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            options: {
+              lightningMode: this.lightningMode,
+              shuffle: this.shuffle,
+              autoplay: this.autoplay,
+              color: this.activeColor
+            },
+            premium: false
+          }, {merge: true})
+        }, 1111)
       })
 
       this.newFolderName = 'Welcome to Focusmix';
@@ -561,19 +575,23 @@ export default {
       this.newTaskTitle = 'Check it out'
       this.currentTask = this.addNewTask(true);
   
-      db.collection('Users').doc(this.uid).get().then(doc => {
-        this.folders = doc.data().folders
-        db.collection('Users').doc(this.uid).set({
-          workingTask: this.currentTask.id,
-          workingFolder: this.currentFolder
-        }, {merge: true})
-      })
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).get().then(doc => {
+          this.folders = doc.data().folders
+          db.collection('Users').doc(this.uid).set({
+            workingTask: this.currentTask.id,
+            workingFolder: this.currentFolder
+          }, {merge: true})
+        })
+      }, 1111)
 
-      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
-          tasks: this.tasks,
-        }, { merge: true })
-      })
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+          db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+            tasks: this.tasks,
+          }, { merge: true })
+        })
+      }, 1111)
     },
     startOver() {
       var originalWorking = this.working
@@ -589,32 +607,34 @@ export default {
     pullData() {
       auth.onAuthStateChanged((user) => {
         if (user) {
-          db.collection('Users').doc(user.uid).get().then(doc => {
-            this.premium = false
-            this.lightningMode = doc.data().options.lightningMode
-            this.shuffle = doc.data().options.shuffle
-            this.autoplay = doc.data().options.autoplay
-            this.currentFolder = doc.data().workingFolder
-            this.activeColor = doc.data().options.color
+          setTimeout(() => {
+            db.collection('Users').doc(user.uid).get().then(doc => {
+              this.premium = false
+              this.lightningMode = doc.data().options.lightningMode
+              this.shuffle = doc.data().options.shuffle
+              this.autoplay = doc.data().options.autoplay
+              this.currentFolder = doc.data().workingFolder
+              this.activeColor = doc.data().options.color
 
-            db.collection('Users').doc(user.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
-              if (doc.exists) {
-                this.currentTask = doc.data()
-                this.$refs.editor._data.state.editor.render(doc.data().notes)
-              }
-            })
+              db.collection('Users').doc(user.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
+                if (doc.exists) {
+                  this.currentTask = doc.data()
+                  this.$refs.editor._data.state.editor.render(doc.data().notes)
+                }
+              })
 
-            db.collection('Users').doc(this.uid).get().then((doc) => {
-              this.folders = doc.data().folders
-            })
+              db.collection('Users').doc(this.uid).get().then((doc) => {
+                this.folders = doc.data().folders
+              })
 
-            db.collection('Users').doc(user.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
-              var orderedTasks = doc.data().tasks;
-              if (doc.exists) {
-                this.tasks = orderedTasks
-              }
+              db.collection('Users').doc(user.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
+                var orderedTasks = doc.data().tasks;
+                if (doc.exists) {
+                  this.tasks = orderedTasks
+                }
+              })
             })
-          })
+          }, 2222)
         }
       })
     },
@@ -679,54 +699,62 @@ export default {
       this.saving = true;
       this.$refs.editor._data.state.editor.save()
       .then((data) => {
-        db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).get().then((doc) => {
-          var taskLength = this.currentTask.length
-          if (!taskLength) {
-            taskLength = { label: '1 hour', value: 3600 }
-          }
-          console.log({data})
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).set({
-            notes: data,
-            title: this.currentTask.title,
-            length: taskLength,
-            elapsed: this.currentTask.elapsed|0,
-            completed: this.currentTask.complete|false
+        setTimeout(() => {
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).get().then((doc) => {
+            var taskLength = this.currentTask.length
+            if (!taskLength) {
+              taskLength = { label: '1 hour', value: 3600 }
+            }
+            console.log({data})
+            db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).set({
+              notes: data,
+              title: this.currentTask.title,
+              length: taskLength,
+              elapsed: this.currentTask.elapsed|0,
+              completed: this.currentTask.complete|false
+            }, {merge: true}).then(() => {
+              this.saving = false;
+            })
+          })
+        }, 1111)
+      })
+
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            options: {
+              lightningMode: this.lightningMode,
+              shuffle: this.shuffle,
+              autoplay: this.autoplay,
+              color: this.activeColor,
+            },
+            workingFolder: this.currentFolder,
+            workingTask: this.currentTask.id
           }, {merge: true}).then(() => {
             this.saving = false;
           })
         })
-      })
+      }, 1111)
 
-      db.collection('Users').doc(this.uid).get().then((doc) => {
-        db.collection('Users').doc(this.uid).set({
-          options: {
-            lightningMode: this.lightningMode,
-            shuffle: this.shuffle,
-            autoplay: this.autoplay,
-            color: this.activeColor,
-          },
-          workingFolder: this.currentFolder,
-          workingTask: this.currentTask.id
-        }, {merge: true}).then(() => {
-          this.saving = false;
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+          db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+            tasks: this.tasks,
+          }, { merge: true }).then(() => {
+            this.saving = false;
+          })
         })
-      })
-
-      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
-          tasks: this.tasks,
-        }, { merge: true }).then(() => {
-          this.saving = false;
-        })
-      })
+      }, 1111)
     },
     goPremium(start = true) {
       this.premium = !this.premium;
-      db.collection('Users').doc(this.uid).get().then((doc) => {
-        db.collection('Users').doc(this.uid).set({
-          premium: !start
-        }, { merge: true })
-      })
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            premium: !start
+          }, { merge: true })
+        })
+      }, 1111)
     },
     logout() {
       auth.signOut().then(() => {
@@ -772,6 +800,11 @@ export default {
             type: "paragraph"
           },
           {
+            data: {text: 'This area you’re reading is for your notes.'},
+            id: "l8gu-1k-6S",
+            type: "paragraph"
+          },
+          {
             data: {text: 'Other features include lightning mode ⚡️ (halves the remaining time), shuffle, and autoplay.'},
             id: "seYBLpHl2W",
             type: "paragraph"
@@ -788,19 +821,21 @@ export default {
       this.tasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
       this.shuffledTasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
 
-      db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => {
-        db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set({
-          id: newTaskId,
-          title: this.newTaskTitle,
-          length: { value: 3600, label: '1 hour'},
-          notes: newTask.notes,
-          elapsed: 0,
-          completed: false
-        }).then(() => {
-          this.saving = false;
-          this.newTaskTitle = '';
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => {
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set({
+            id: newTaskId,
+            title: this.newTaskTitle,
+            length: { value: 3600, label: '1 hour'},
+            notes: newTask.notes,
+            elapsed: 0,
+            completed: false
+          }).then(() => {
+            this.saving = false;
+            this.newTaskTitle = '';
+          })
         })
-      })
+      }, 1111)
       this.$refs.editor._data.state.editor.render(newTask.notes)
       return newTask;
     },
@@ -810,28 +845,33 @@ export default {
       var newFolder = {name: this.newFolderName, id: newFolderId}
       this.folders.push(newFolder)
 
-      db.collection('Users').doc(this.uid).get().then((doc) => {
-        db.collection('Users').doc(this.uid).set({
-          folders: this.folders,
-        }, { merge: true }).then(() => {
-          this.saving = false;
-        })
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            folders: this.folders,
+          }, { merge: true }).then(() => {
+            this.saving = false;
+          })
+        }, 1111)
       })
 
       this.saving = true;
-      db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).get().then((doc) => {
-        db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).set({
-          name: this.newFolderName,
-        }, { merge: true }).then(() => {
-          this.saving = false;
-          this.newFolderName = '';
+      setTimeout(() => {
+        db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).get().then((doc) => {
+          db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).set({
+            name: this.newFolderName,
+          }, { merge: true }).then(() => {
+            this.saving = false;
+            this.newFolderName = '';
+          })
         })
-      })
+      }, 1111)
       return newFolder
     },
     play() {
       this.working = true
       var increment = 100/this.currentTask.length.value;
+      this.currentTask.elapsed = increment;
       this.timer = setInterval(() => {
         this.currentTask.elapsed += increment;
         if (this.currentTask.elapsed >= 100) {
@@ -1234,5 +1274,14 @@ button[type="submit"]:not(.invisible),button[type="button"].submit {
 }
 .not-allowed {
   cursor: not-allowed;
+}
+.cdx-checklist__item-checkbox {
+  margin-top: 13px;
+}
+.cdx-checklist__item-checkbox::after {
+  top: 5px;
+  left: 4px;
+  width: 8px;
+  height: 4px;
 }
 </style>
