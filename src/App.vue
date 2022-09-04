@@ -683,10 +683,6 @@ export default {
       var nextTask = this.getNextArrItem(thisTask, tasks)
 
       if (nextTask) {
-        if (completed) {
-          this.currentTask.elapsed = this.currentTask.length.value
-          this.currentTask.completed = true
-        }
         this.changeTask(nextTask.id)
         if (this.autoplay) {
           this.play()
@@ -695,8 +691,6 @@ export default {
         this.newTaskTitle = 'New task'
         var newCurrentTask = this.addNewTask()
         if (completed) {
-          this.currentTask.elapsed = this.currentTask.length.value
-          this.currentTask.completed = true
           var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.currentTask.id))
 
           var original = this.tasks
@@ -708,6 +702,15 @@ export default {
         if (this.autoplay) {
           this.play()
         }
+      }
+      if (completed) {
+        var audio = new Audio('./assets/sounds/success.mp3');
+        audio.play();
+        this.currentTask.elapsed = this.currentTask.length.value
+        this.currentTask.completed = true
+      } else {
+        var audio = new Audio('./assets/sounds/beep.mp3');
+        audio.play();
       }
     },
     invokeSave() {
@@ -875,6 +878,7 @@ export default {
             this.skip(true)
           } else {
             this.modal = 'moreTime'
+            // play beep
           }
           clearInterval(this.timer);
         }
