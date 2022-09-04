@@ -774,7 +774,7 @@ export default {
     },
     sendEmailSignIn() {
       auth.sendSignInLinkToEmail(this.email, {
-        url: 'https://focusmix.website',
+        url: window.location.href,
         handleCodeInApp: true
       })
       .then(() => {
