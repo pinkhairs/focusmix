@@ -334,8 +334,8 @@ export default {
       currentFolder: {id: ''},
       renameFolderName: '',
       transitionDuration: 3600,
-      beep: require('./assets/sounds/beep.mp3'),
-      success: require('./assets/sounds/success.mp3')
+      beep: require('./assets/media/beep.mp3'),
+      success: require('./assets/media/success.mp3')
     }
   },
   mounted() {
