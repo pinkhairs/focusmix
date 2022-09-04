@@ -870,7 +870,6 @@ export default {
       this.working = true
       this.timer = setInterval(() => {
         this.currentTask.elapsed = this.currentTask.elapsed+1/10;
-        console.log(this.currentTask.elapsed)
         if (this.currentTask.elapsed >= this.currentTask.length.value) {
           if (this.autoplay) {
             this.skip(true)
