@@ -17,7 +17,7 @@
         </div>
         <editor @ready="loadEditor = true" ref="editor" :config="config" />
       </main>
-      <footer class="controls">
+      <footer class="controls" v-if="0">
         <ul class="folders">
           <li><button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
             <div v-if="foldersOpen" class="folders-list">
