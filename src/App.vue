@@ -333,7 +333,9 @@ export default {
       currentTask: {title: '', length: {label: '1 hour', value: 3600}},
       currentFolder: {id: ''},
       renameFolderName: '',
-      transitionDuration: 3600
+      transitionDuration: 3600,
+      beep: require('./assets/sounds/beep.mp3'),
+      success: require('./assets/sounds/success.mp3')
     }
   },
   mounted() {
@@ -704,12 +706,12 @@ export default {
         }
       }
       if (completed) {
-        var audio = new Audio(require('./assets/sounds/success.mp3'));
+        var audio = new Audio(this.success);
         audio.play();
         this.currentTask.elapsed = this.currentTask.length.value
         this.currentTask.completed = true
       } else {
-        var audio = new Audio(require('./assets/sounds/beep.mp3'));
+        var audio = new Audio(this.beep);
         audio.play();
       }
     },
@@ -878,7 +880,7 @@ export default {
             this.skip(true)
           } else {
             this.modal = 'moreTime'
-            var audio = new Audio(require('./assets/sounds/beep.mp3'));
+            var audio = new Audio(this.beep);
             audio.play();
           }
           clearInterval(this.timer);
