@@ -785,7 +785,7 @@ export default {
         newTask.notes.blocks = [
           {
             data: {
-              text: 'Hi, Focusmix is another tool for motivation to get tasks done.'
+              text: 'Hi, Focusmix is a tool for getting stuff done.'
             },
             id: "moTtRFW4VL",
             type: "paragraph"
@@ -1075,14 +1075,17 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 .color {
   left: 0;
   min-width: 30px;
+  z-index: 3;
 }
 .site-nav {
   z-index: 60;
   text-align: right;
+  display: inline-block;
 }
 @media (min-width: 0px) and (max-width: 1023px) {
   .site-nav {
     position: relative;
+    float: right;
   }
 }
 @media (min-width: 1024px) {
