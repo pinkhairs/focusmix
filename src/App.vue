@@ -1,207 +1,212 @@
 <template>
   <div class="page">
-    <nav class="site-nav">
-      <ul>
-        <li v-if="authenticated"><button type="button" class="muted" @click="invokeSave"><img src="./assets/images/cloud.svg" :class="saving ? 'muted' : ''" alt="Autosave" aria-label="Autosaving" /></button></li>
-        <li><button type="button" :class="authenticated ? '' : 'muted'" @click="modal = 'account'"><img src="./assets/images/account.svg" alt="Account" aria-label="Your Account" /></button></li>
-        <li><button class="muted" type="button" @click="modal = 'about'" target="_blank"><img src="./assets/images/dots.svg" alt="More" aria-label="About this site"></button></li>
-      </ul>
-    </nav>
-    <main class="container">
-      <input type="text" class="task-title" v-model="currentTask.title" placeholder="Name your task" />
-      <div style="display: flex; margin: 20px 0; align-center: center; gap: 10px">
-        <img v-if="!lightningMode" src="./assets/images/time.svg" alt="" />
-        <img v-else src="./assets/images/lightning-mode.svg" alt="Lightning mode" />
-        <v-select :disabled="working" v-model="currentTask.length" style="width: 50%; border: 0" :options="timeOptions"></v-select>
-      </div>
-      <editor ref="editor" :config="config" />
-    </main>
-    <footer class="controls">
-      <ul class="folders">
-        <li><button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
-          <div v-if="foldersOpen" class="folders-list">
-            <draggable group="folders" :list="folders">
-              <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
-                <button style="text-align: left" class="change-folder" type="button" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' folder'">{{folder.name}}</button>
-                <div style="display: flex; gap: 5px;">
-                  <button class="muted" type="button" :aria-label="'Rename '+folder.name" @click="modal = 'renameFolder'; selectedFolder = folder">
-                    <img src="./assets/images/pencil.svg" />
-                  </button>
-                  <button v-if="justCopied === folder.id" class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="changeFolder(folder)">
-                    <img src="./assets/images/arrow.svg" />
-                  </button>
-                  <button v-else class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="copyFolder(folder)">
-                    <img src="./assets/images/copy.svg" alt="Copy" />
-                  </button>
-                  <button v-if="folders.length > 1 && this.currentFolder.id !== folder.id" class="muted" type="button" :aria-label="'Delete '+folder.name" @click="modal = 'deleteFolder'; selectedFolder = folder"><img src="./assets/images/trash.svg" alt="Trash" /></button>
-                </div>
-              </div>
-            </draggable>
-            <form @submit.prevent="addNewFolder" class="add-new-folder">
-              <input style="width: 100%" v-model="newFolderName" type="text" placeholder="New folder name" />
-              <button class="invisible" ref="addNewFolderButton" :class="newFolderName.trim() === '' ? 'muted' : ''" :disabled="newFolderName.trim() === ''" type="submit"  aria-label="Create new folder"><img src="./assets/images/plus.svg" alt="Add" /></button>
-            </form>
-          </div>
-        </li>
-      </ul>
-      <div class="action">
-        <div class="tooltip">
-          <button type="button" :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode">
-            <img src="./assets/images/lightning.svg" alt="Lightning Mode" aria-label="Halves the remaining time" />
-          </button>
-          <span class="tooltiptext">Lightning</span>
+    <div v-if="pageReady">
+      <nav class="site-nav">
+        <ul>
+          <li v-if="authenticated"><button type="button" class="muted" @click="invokeSave"><img src="./assets/images/cloud.svg" :class="saving ? 'muted' : ''" alt="Autosave" aria-label="Autosaving" /></button></li>
+          <li><button type="button" :class="authenticated ? '' : 'muted'" @click="modal = 'account'"><img src="./assets/images/account.svg" alt="Account" aria-label="Your Account" /></button></li>
+          <li><button class="muted" type="button" @click="modal = 'about'" target="_blank"><img src="./assets/images/dots.svg" alt="More" aria-label="About this site"></button></li>
+        </ul>
+      </nav>
+      <main class="container">
+        <input type="text" class="task-title" v-model="currentTask.title" placeholder="Name your task" />
+        <div style="display: flex; margin: 20px 0; align-center: center; gap: 10px">
+          <img v-if="!lightningMode" src="./assets/images/time.svg" alt="" />
+          <img v-else src="./assets/images/lightning-mode.svg" alt="Lightning mode" />
+          <v-select :disabled="working" v-model="currentTask.length" style="width: 50%; border: 0" :options="timeOptions"></v-select>
         </div>
-        <div class="tooltip">
-          <button @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
-          <span class="tooltiptext">Shuffle</span>
-        </div>
-        <div class="browse">
-          <div class="muted tooltip">
-            <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
-            <span class="tooltiptext">Start over</span>
-          </div>
-          <div>
-            <button v-if="working" type="button" @click="pause()"><img src="./assets/images/pause.svg" alt="Pause" aria-label="Pause task" /></button>
-            <button v-else type="button"  @click="play()"><img src="./assets/images/play.svg" alt="Start" aria-label="Start task" /></button>
-          </div>
-          <div class="muted tooltip">
-            <button @click="skip(false)" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
-            <span class="tooltiptext">Next task</span>
-          </div>
-        </div>
-        <div class="tooltip">
-          <button v-if="autoplay" @click="autoplay = !autoplay" type="button"><img src="./assets/images/autoplay.svg" alt="Autoplay" aria-label="Start next task automatically" /></button>
-          <button v-else @click="autoplay = !autoplay" type="button" class="muted"><img src="./assets/images/autoplay-off.svg" alt="Autoplay" aria-label="Don’t next task automatically" /></button>
-          <span class="tooltiptext">Autoplay</span>
-        </div>
-          <ul class="folders">
-            <li><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
-            <div class="queue-list" v-if="queueOpen">
-              <div>
-                <div v-if="shuffle">
-                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
-                    <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
-                    <button v-if="tasks.length > 1 && currentTask.id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+        <editor @ready="loadEditor = true" ref="editor" :config="config" />
+      </main>
+      <footer class="controls">
+        <ul class="folders">
+          <li><button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+            <div v-if="foldersOpen" class="folders-list">
+              <draggable group="folders" :list="folders">
+                <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
+                  <button style="text-align: left" class="change-folder" type="button" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' folder'">{{folder.name}}</button>
+                  <div style="display: flex; gap: 5px;">
+                    <button class="muted" type="button" :aria-label="'Rename '+folder.name" @click="modal = 'renameFolder'; selectedFolder = folder">
+                      <img src="./assets/images/pencil.svg" />
+                    </button>
+                    <button v-if="justCopied === folder.id" class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="changeFolder(folder)">
+                      <img src="./assets/images/arrow.svg" />
+                    </button>
+                    <button v-else class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="copyFolder(folder)">
+                      <img src="./assets/images/copy.svg" alt="Copy" />
+                    </button>
+                    <button v-if="folders.length > 1 && currentFolder.id !== folder.id" class="muted" type="button" :aria-label="'Delete '+folder.name" @click="modal = 'deleteFolder'; selectedFolder = folder"><img src="./assets/images/trash.svg" alt="Trash" /></button>
                   </div>
                 </div>
-                <draggable v-else :list="tasks" group="tasks-todo">
-                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
-                    <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
-                    <button v-if="tasks.length > 1 && currentTask.id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
-                  </div>
-                </draggable>
-              </div>
-              <div>
-                <form @submit.prevent="addNewTask" class="add-new-task">
-                  <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
-                  <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
-                </form>
-              </div>
+              </draggable>
+              <form @submit.prevent="addNewFolder" class="add-new-folder">
+                <input style="width: 100%" v-model="newFolderName" type="text" placeholder="New folder name" />
+                <button class="invisible" ref="addNewFolderButton" :class="newFolderName.trim() === '' ? 'muted' : ''" :disabled="newFolderName.trim() === ''" type="submit"  aria-label="Create new folder"><img src="./assets/images/plus.svg" alt="Add" /></button>
+              </form>
             </div>
           </li>
         </ul>
+        <div class="action">
+          <div class="tooltip">
+            <button type="button" :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode">
+              <img src="./assets/images/lightning.svg" alt="Lightning Mode" aria-label="Halves the remaining time" />
+            </button>
+            <span class="tooltiptext">Lightning</span>
+          </div>
+          <div class="tooltip">
+            <button @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
+            <span class="tooltiptext">Shuffle</span>
+          </div>
+          <div class="browse">
+            <div class="muted tooltip">
+              <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
+              <span class="tooltiptext">Start over</span>
+            </div>
+            <div>
+              <button v-if="working" type="button" @click="pause()"><img src="./assets/images/pause.svg" alt="Pause" aria-label="Pause task" /></button>
+              <button v-else type="button"  @click="play()"><img src="./assets/images/play.svg" alt="Start" aria-label="Start task" /></button>
+            </div>
+            <div class="muted tooltip">
+              <button @click="skip(false)" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
+              <span class="tooltiptext">Next task</span>
+            </div>
+          </div>
+          <div class="tooltip">
+            <button v-if="autoplay" @click="autoplay = !autoplay" type="button"><img src="./assets/images/autoplay.svg" alt="Autoplay" aria-label="Start next task automatically" /></button>
+            <button v-else @click="autoplay = !autoplay" type="button" class="muted"><img src="./assets/images/autoplay-off.svg" alt="Autoplay" aria-label="Don’t next task automatically" /></button>
+            <span class="tooltiptext">Autoplay</span>
+          </div>
+            <ul class="folders">
+              <li><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
+              <div class="queue-list" v-if="queueOpen">
+                <div>
+                  <div v-if="shuffle">
+                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
+                      <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
+                      <button v-if="tasks.length > 1 && currentTask.id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                    </div>
+                  </div>
+                  <draggable v-else :list="tasks" group="tasks-todo">
+                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
+                      <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
+                      <button v-if="tasks.length > 1 && currentTask.id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                    </div>
+                  </draggable>
+                </div>
+                <div>
+                  <form @submit.prevent="addNewTask" class="add-new-task">
+                    <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
+                    <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
+                  </form>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="mark-complete">
+          <button @click="skip(true)" v-if="currentTask.completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
+          <button v-else @click="skip(true)" class="muted" type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
+        </div>
+      </footer>
+      <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: activeColor }"></div>
+      <div @click="goToNextColor()" class="progress-bar">
+        <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration, maxWidth: progressBarMaxWidth}"></div>
       </div>
-      <div class="mark-complete">
-        <button @click="skip(true)" v-if="currentTask.completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
-        <button v-else @click="skip(true)" class="muted" type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
+      <div @click="modal = false; waitingForSignin = false" class="overlay" v-if="modal"></div>
+      <div class="modal" v-if="modal === 'account'">
+        <button @click="modal = false; waitingForSignin = false" type="button" class="close-button">&times;</button>
+        <div v-if="authenticated">
+          <h2>Your account</h2>
+          <p>Email: {{email}}</p>
+          <p style="padding-bottom: 10px; display: flex; gap: 10px"><button @click="modal = false" type="submit">OK</button><button @click="logout" type="button">Log out</button></p>
+        </div>
+        <div v-else>
+          <h2>Your account</h2>
+          <p>Log into your existing account or create a new one if none exists.</p>
+          <p style="font-size: 16px">Wondering why you should register? Access your tasks and preferences across devices.</p>
+          <form @submit.prevent="sendEmailSignIn">
+            <p><label>Email
+              <input :disabled="waitingForSignin" v-model="email" type="email" required />
+            </label></p>
+            <p style="padding-bottom: 10px"><button :disabled="!email" :class="waitingForSignin || !email ? 'muted' : ''" type="submit">{{waitingForSignin ? 'Check your email' : 'Register / login'}}</button><br><span style="display: block; margin-top: 10px; font-size: 16px">An instant sign-in link will be emailed to you.</span></p>
+          </form>
+        </div>
       </div>
-    </footer>
-    <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: this.activeColor }"></div>
-    <div @click="goToNextColor()" :style="{width: currentTask.elapsed + '%',backgroundColor: this.activeColor}" class="progress-bar"></div>
-    <div @click="modal = false; waitingForSignin = false" class="overlay" v-if="modal"></div>
-    <div class="modal" v-if="modal === 'account'">
-      <button @click="modal = false; waitingForSignin = false" type="button" class="close-button">&times;</button>
-      <div v-if="authenticated">
-        <h2>Your account</h2>
-        <p>Email: {{email}}</p>
-        <p style="padding-bottom: 10px; display: flex; gap: 10px"><button @click="modal = false" type="submit">OK</button><button @click="logout" type="button">Log out</button></p>
+      <div class="modal" v-if="modal === 'premium'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <div v-if="premium">
+          <h2>You’re premium!</h2>
+          <ul class="features">
+            <li>Cloneable folders</li>
+            <li>Task archives</li>
+            <li>Zapier integration</li>
+          </ul>
+          <p>Want to cancel or manage your subscription?</p>
+          <form @submit.prevent="goPremium(false); modal = false">
+            <p style="padding-bottom: 10px; font-size: 15px;"><button type="submit">Go to manage</button></p>
+          </form>
+        </div>
+        <div v-else>
+          <h2>Go premium</h2>
+          <p>Knock out your todo lists for just $5 USD monthly.</p>
+          <ul class="features">
+            <li>Cloneable tasks</li>
+            <li>Task archives</li>
+            <li>Zapier integration</li>
+          </ul>
+          <form @submit.prevent="goPremium(); modal = false">
+            <p style="padding-bottom: 10px; line-height: 2; font-size: 15px;"><button type="submit">Subscribe</button><br>You can cancel anytime!</p>
+          </form>
+        </div>
       </div>
-      <div v-else>
-        <h2>Your account</h2>
-        <p>Log into your existing account or create a new one if none exists.</p>
-        <p style="font-size: 16px">Wondering why you should register? Access your tasks and preferences across devices.</p>
-        <form @submit.prevent="sendEmailSignIn">
-          <p><label>Email
-            <input :disabled="waitingForSignin" v-model="email" type="email" required />
+      <div class="modal" v-if="modal === 'restart'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Start task over?</h2>
+        <p>This will bring the task to the top of the queue.</p>
+        <form>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Yes</button> <button type="button" @click="modal = false">No</button></p>
+        </form>
+      </div>
+      <div class="modal" v-if="modal === 'deleteFolder'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Delete {{selectedFolder.name}}?</h2>
+        <p>This is irreversible!</p>
+        <form>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteFolder(selectedFolder.id); modal = false">Delete</button></p>
+        </form>
+      </div>
+      <div class="modal" v-if="modal === 'deleteTask'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Delete: {selectedTask.name}}?</h2>
+        <p>This is irreversible! Notes will be gone.</p>
+        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask.id); modal = false">Delete</button></p>
+      </div>
+      <div class="modal" v-if="modal === 'renameFolder'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Rename <code>{{selectedFolder.name}}</code></h2>
+        <form @submit.prevent="renameFolder(selectedFolder); modal = false">
+          <p><label>New name<br>
+            <input v-model="renameFolderName" style="font: inherit" type="text" class="show" required />
           </label></p>
-          <p style="padding-bottom: 10px"><button :disabled="!email" :class="waitingForSignin || !email ? 'muted' : ''" type="submit">{{waitingForSignin ? 'Check your email' : 'Register / login'}}</button><br><span style="display: block; margin-top: 10px; font-size: 16px">An instant sign-in link will be emailed to you.</span></p>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Ready</button><button type="button" class="" @click="modal = false">Never mind</button></p>
+        </form>
+      </div>
+      <div class="modal" v-if="modal === 'moreTime'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Do you want to add another {{currentTask.length.label}}?</h2>
+        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" @click="startOver(); modal = false" type="button">Yes</button><button type="button" class="" @click="modal = false">No</button></p>
+      </div>
+      <div class="modal" v-if="modal === 'about'" style="font-size: 18px">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Hey, I’m Amí ✌🏼</h2>
+        <p>I’m a <a href="https://naeily.com" target="_blank">freelance web designer and developer</a> based in New Mexico. I built Focusmix with Vue.js, Firebase, and Editor.js.</p>
+        <p>Focusmix is in <strong>ALPHA</strong>: Do not use for anything important for now. <a href="https://subscribepage.io/BNo1VG" target="_blank">Sign up for email updates</a>.</p>
+        <p>Need support? Email <a href="mailto:ami@naeily.com">ami@naeily.com</a>.</p>
+        <form>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button @click="modal = false" type="submit">OK</button></p>
         </form>
       </div>
     </div>
-    <div class="modal" v-if="modal === 'premium'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <div v-if="premium">
-        <h2>You’re premium!</h2>
-        <ul class="features">
-          <li>Cloneable folders</li>
-          <li>Task archives</li>
-          <li>Zapier integration</li>
-        </ul>
-        <p>Want to cancel or manage your subscription?</p>
-        <form @submit.prevent="goPremium(false); modal = false">
-          <p style="padding-bottom: 10px; font-size: 15px;"><button type="submit">Go to manage</button></p>
-        </form>
-      </div>
-      <div v-else>
-        <h2>Go premium</h2>
-        <p>Knock out your todo lists for just $5 USD monthly.</p>
-        <ul class="features">
-          <li>Cloneable tasks</li>
-          <li>Task archives</li>
-          <li>Zapier integration</li>
-        </ul>
-        <form @submit.prevent="goPremium(); modal = false">
-          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px;"><button type="submit">Subscribe</button><br>You can cancel anytime!</p>
-        </form>
-      </div>
-    </div>
-    <div class="modal" v-if="modal === 'restart'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Start task over?</h2>
-      <p>This will bring the task to the top of the queue.</p>
-      <form>
-        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Yes</button> <button type="button" @click="modal = false">No</button></p>
-      </form>
-    </div>
-    <div class="modal" v-if="modal === 'deleteFolder'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Delete {{selectedFolder.name}}?</h2>
-      <p>This is irreversible!</p>
-      <form>
-        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteFolder(selectedFolder.id); modal = false">Delete</button></p>
-      </form>
-    </div>
-    <div class="modal" v-if="modal === 'deleteTask'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Delete: {selectedTask.name}}?</h2>
-      <p>This is irreversible! Notes will be gone.</p>
-      <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask.id); modal = false">Delete</button></p>
-    </div>
-    <div class="modal" v-if="modal === 'renameFolder'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Rename <code>{{selectedFolder.name}}</code></h2>
-      <form @submit.prevent="renameFolder(selectedFolder); modal = false">
-        <p><label>New name<br>
-          <input v-model="renameFolderName" style="font: inherit" type="text" class="show" required />
-        </label></p>
-        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Ready</button><button type="button" class="" @click="modal = false">Never mind</button></p>
-      </form>
-    </div>
-    <div class="modal" v-if="modal === 'moreTime'">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Do you want to add another {{currentTask.length.label}}?</h2>
-      <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" @click="startOver(); modal = false" type="button">Yes</button><button type="button" class="" @click="modal = false">No</button></p>
-    </div>
-    <div class="modal" v-if="modal === 'about'" style="font-size: 18px">
-      <button @click="modal = false" type="button" class="close-button">&times;</button>
-      <h2>Hey, I’m Amí ✌🏼</h2>
-      <p>I’m a <a href="https://naeily.com" target="_blank">freelance web designer and developer</a> based in New Mexico. I built Focusmix with Vue.js, Firebase, and Editor.js.</p>
-      <p>Focusmix is in <strong>ALPHA</strong>: Do not use for anything important for now. <a href="https://subscribepage.io/BNo1VG" target="_blank">Sign up for email updates</a>.</p>
-      <p>Need support? Email <a href="mailto:ami@naeily.com">ami@naeily.com</a>.</p>
-      <form>
-        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button @click="modal = false" type="submit">OK</button></p>
-      </form>
-    </div>
+    <div v-else class="loading">Loading your experience...</div>
   </div>
 </template>
 
@@ -228,7 +233,12 @@ export default {
   components: { draggable, vSelect },
   data() {
     return {
+      timeLeft: 3600,
+      loadEditor: false,
+      pageReady: false,
       activeColor: '#f2f2f2',
+      progressBarWidth: '0px',
+      progressBarMaxWidth: 'none',
       colors: [
         '#ffe8fa',
         '#fdd2d1',
@@ -320,9 +330,10 @@ export default {
       waitingForSignin: false,
       uid: '',
       saving: false,
-      currentTask: {title: ''},
-      currentFolder: {},
-      renameFolderName: ''
+      currentTask: {title: '', length: {label: '1 hour', value: 3600}},
+      currentFolder: {id: ''},
+      renameFolderName: '',
+      transitionDuration: 3600
     }
   },
   mounted() {
@@ -338,15 +349,14 @@ export default {
       return(false);
     }
     auth.onAuthStateChanged((user) => {
-      if (user) {
+      if (user) { //todo flip
         this.uid = user.uid
-        setTimeout(() => {
-          db.collection('Users').doc(this.uid).get().then((doc) => {
-            if (user.email && doc.exists) {
-              this.premium = doc.data().premium
-            }
-          });
-        }, 1111);
+        this.pullData();
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          if (user.email && doc.exists) {
+            this.premium = doc.data().premium
+          }
+        });
 
         if (user.email) {
           this.email = user.email
@@ -392,15 +402,33 @@ export default {
         })
       }
     });
-    this.pullData();
     window.setInterval(() => {
       this.invokeSave()
-    }, 10000)
+    }, 7777)
   },
   watch: {
+    currentTask: {
+      handler(val){
+        this.transitionDuration = this.currentTask.length.value-this.currentTask.elapsed+'s, 100ms, 100ms'
+      },
+      deep: true
+    },
     shuffle(enabled) {
       if (enabled) {
         this.shuffledTasks = this.shuffleTasks()
+      }
+    },
+    pageReady(newValue) {
+      if (newValue) {
+        if (this.currentTask.elapsed) {
+          this.progressBarWidth = 'calc('+this.currentTask.elapsed/this.currentTask.length.value*100+'vw - 30px)'
+        } else {
+          this.progressBarWidth = 0;
+        }
+        this.transitionDuration = this.currentTask.length.value-this.currentTask.elapsed+'s, 100ms, 100ms'
+        setTimeout(() => {
+          this.$refs.editor._data.state.editor.render(this.currentTask.notes)
+        }, 888)
       }
     }
   },
@@ -424,36 +452,34 @@ export default {
     },
     renameFolder(folder) {
       db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).get().then(() => {
-        setTimeout(() => {
-          var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
-          var original = this.folders
-          var newFolders = [].concat(original);
+        var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
+        var original = this.folders
+        var newFolders = [].concat(original);
 
-          newFolders[selectedFolderIndex] = {
-            name: this.renameFolderName,
-            id: folder.id
-          }
+        newFolders[selectedFolderIndex] = {
+          name: this.renameFolderName,
+          id: folder.id
+        }
 
-          if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
-            this.currentFolder.name = this.renameFolderName
-          }
+        if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
+          this.currentFolder.name = this.renameFolderName
+        }
 
-          db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
-          name: this.renameFolderName
+        db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
+        name: this.renameFolderName
+        }, { merge: true }).then(() => {
+          this.renameFolderName = ''
+        })
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            folders: newFolders,
+            workingFolder: this.currentFolder
           }, { merge: true }).then(() => {
-            this.renameFolderName = ''
+            this.saving = false;
           })
-          db.collection('Users').doc(this.uid).get().then((doc) => {
-            db.collection('Users').doc(this.uid).set({
-              folders: newFolders,
-              workingFolder: this.currentFolder
-            }, { merge: true }).then(() => {
-              this.saving = false;
-            })
-          })
-          this.folders = newFolders
-        });
-      }, 1111);
+        })
+        this.folders = newFolders
+      });
     },
     deleteFolder(folder) {
       db.collection('Users').doc(this.uid).collection('Folders').doc(folder).delete().then(() => {
@@ -462,13 +488,11 @@ export default {
         var newFolders = [].concat(original);
         newFolders.splice(selectedFolderIndex, 1)
         this.folders = newFolders
-        setTimeout(() => {
-          db.collection('Users').doc(this.uid).get().then((doc) => {
-            db.collection('Users').doc(this.uid).set({
-              folders: newFolders,
-            }, { merge: true })
-          })
-        }, 1111);
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            folders: newFolders,
+          }, { merge: true })
+        })
       });
     },
     deleteTask(task) {
@@ -496,67 +520,60 @@ export default {
       var newFolder = this.addNewFolder();
       this.justCopied = newFolder.id;
 
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Folders').doc(oldFolder.id).get().then((doc) => { 
-          var newTask = {}
-          var tasks = doc.data().tasks;
-          if (tasks.length) {
-            var newTasks = []
-            for (var i = 0; i < doc.data().tasks.length; i++) {
-              tasks[i] = doc.data().tasks[i]
-              this.newTaskTitle = tasks[i].title
-              newTask = this.addNewTask()
-              newTask.completed = false
-              newTasks.push(newTask)
-            }
-            db.collection('Users').doc(this.uid).collection('Folders').doc(newFolder.id).set({
-              name: newFolderName,
-              tasks: newTasks
-            })
+      db.collection('Users').doc(this.uid).collection('Folders').doc(oldFolder.id).get().then((doc) => { 
+        var newTask = {}
+        var tasks = doc.data().tasks;
+        if (tasks.length) {
+          var newTasks = []
+          for (var i = 0; i < doc.data().tasks.length; i++) {
+            tasks[i] = doc.data().tasks[i]
+            this.newTaskTitle = tasks[i].title
+            newTask = this.addNewTask()
+            newTask.completed = false
+            newTasks.push(newTask)
           }
-        })
-      }, 1111)
+          db.collection('Users').doc(this.uid).collection('Folders').doc(newFolder.id).set({
+            name: newFolderName,
+            tasks: newTasks
+          })
+        }
+      })
     },
     changeTask(taskId) {
       this.working = false
-        setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).get().then((doc) => { 
-          this.currentTask = doc.data()
-          this.$refs.editor._data.state.editor.render(doc.data().notes)
+      return db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).get().then((doc) => { 
+        this.currentTask = doc.data()
+        this.$refs.editor._data.state.editor.render(doc.data().notes)
 
-          db.collection('Users').doc(this.uid).get((doc) => {
-            db.collection('Users').doc(this.uid).set({
-              workingTask: this.currentTask.id
-              }, { merge: true }
-            )
-          })
+        db.collection('Users').doc(this.uid).get((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            workingTask: this.currentTask.id
+            }, { merge: true })
         })
-      }, 1111)
+      })
     },
     changeFolder(folder) {
       this.currentFolder = folder
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-          if (doc.data().tasks) {
-            this.tasks = doc.data().tasks
-            db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
-              this.currentTask = doc.data()
-              this.$refs.editor._data.state.editor.render(doc.data().notes)
-            })
-          } else {
-            var newTaskId = uuidv4();
-            var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [], version: "2.12.4"}};
-            this.tasks = [newTask]
+      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+        if (doc.data().tasks) {
+          this.tasks = doc.data().tasks
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
+            this.currentTask = doc.data()
+            this.$refs.editor._data.state.editor.render(doc.data().notes)
+          })
+        } else {
+          var newTaskId = uuidv4();
+          var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [], version: "2.12.4"}};
+          this.tasks = [newTask]
 
-            db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
-                db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
-            })
-          }
-        })
-      }, 1111)
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
+              db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
+          })
+        }
+      })
     },
     createWelcome() {
-      setTimeout(() => {
+      let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then((doc) => {
           db.collection('Users').doc(this.uid).set({
             options: {
@@ -567,37 +584,40 @@ export default {
             },
             premium: false
           }, {merge: true})
-        }, 1111)
-      })
+        })
 
-      this.newFolderName = 'Welcome to Focusmix';
-      this.currentFolder = this.addNewFolder();
-      this.newTaskTitle = 'Check it out'
-      this.currentTask = this.addNewTask(true);
-  
-      setTimeout(() => {
+        this.newFolderName = 'Welcome to Focusmix';
+        this.currentFolder = this.addNewFolder();
+        this.newTaskTitle = 'Check it out'
+        this.currentTask = this.addNewTask(true);
+
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.folders = doc.data().folders
           db.collection('Users').doc(this.uid).set({
             workingTask: this.currentTask.id,
             workingFolder: this.currentFolder
-          }, {merge: true})
-        })
-      }, 1111)
-
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-          db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
-            tasks: this.tasks,
-          }, { merge: true })
-        })
-      }, 1111)
+          }, {merge: true}).then(() => {
+            db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+              db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+                tasks: this.tasks,
+              }, { merge: true }).then(() => {
+                resolve(true)
+              }).catch(() => reject(false))
+            }).catch(() => reject(false))
+          })
+        }).catch(() => reject(false))
+      })
+      pageReady.then(() => {this.pageReady = true; }).catch(() => {this.pageReady = false})
     },
     startOver() {
+      this.animation = 'none'
+      this.transitionDuration = this.currentTask.length.value+'s, 100ms, 100ms'
       var originalWorking = this.working
       this.working = false
       clearInterval(this.timer);
       this.currentTask.elapsed = 0
+      setTimeout(() => {
+        this.animation = null
+      }, 666)
       if (originalWorking) {
         this.play()
       } else {
@@ -605,38 +625,38 @@ export default {
       }
     },
     pullData() {
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          setTimeout(() => {
-            db.collection('Users').doc(user.uid).get().then(doc => {
-              this.premium = false
-              this.lightningMode = doc.data().options.lightningMode
-              this.shuffle = doc.data().options.shuffle
-              this.autoplay = doc.data().options.autoplay
-              this.currentFolder = doc.data().workingFolder
-              this.activeColor = doc.data().options.color
-
-              db.collection('Users').doc(user.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
-                if (doc.exists) {
-                  this.currentTask = doc.data()
-                  this.$refs.editor._data.state.editor.render(doc.data().notes)
-                }
-              })
-
-              db.collection('Users').doc(this.uid).get().then((doc) => {
-                this.folders = doc.data().folders
-              })
-
-              db.collection('Users').doc(user.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
-                var orderedTasks = doc.data().tasks;
-                if (doc.exists) {
-                  this.tasks = orderedTasks
-                }
-              })
-            })
-          }, 2222)
-        }
+      let pageReady = new Promise((resolve, reject) => {
+        db.collection('Users').doc(this.uid).get().then(doc => {
+          this.premium = false
+          this.lightningMode = doc.data().options.lightningMode
+          this.shuffle = doc.data().options.shuffle
+          this.autoplay = doc.data().options.autoplay
+          this.currentFolder = doc.data().workingFolder
+          this.activeColor = doc.data().options.color
+          return doc;
+        }).then((doc) => {
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
+            if (doc.exists) {
+              this.currentTask = doc.data()
+            }
+          }).then(() => {
+            db.collection('Users').doc(this.uid).get().then((doc) => {
+              this.folders = doc.data().folders
+            }).then(() => {
+              if (this.currentFolder) {
+                db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
+                  var orderedTasks = doc.data().tasks;
+                  if (doc.exists) {
+                    this.tasks = orderedTasks
+                    resolve(true)
+                  }
+                }).catch(() => reject(false))
+              }
+            }).catch(() => reject(false))
+          }).catch(() => reject(false))
+        }).catch(() => reject(false))
       })
+      pageReady.then(() => {this.pageReady = true }).catch(() => {this.pageReady = false})
     },
     shuffleTasks() {
       var original = this.tasks
@@ -664,20 +684,18 @@ export default {
 
       if (nextTask) {
         if (completed) {
-          this.currentTask.elapsed = 100
+          this.currentTask.elapsed = this.currentTask.length.value
           this.currentTask.completed = true
         }
-        setTimeout(() => {
-          this.changeTask(nextTask.id)
-          if (this.autoplay) {
-            this.play()
-          }
-        }, 1000)
+        this.changeTask(nextTask.id)
+        if (this.autoplay) {
+          this.play()
+        }
       } else {
         this.newTaskTitle = 'New task'
         var newCurrentTask = this.addNewTask()
         if (completed) {
-          this.currentTask.elapsed = 100
+          this.currentTask.elapsed = this.currentTask.length.value
           this.currentTask.completed = true
           var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.currentTask.id))
 
@@ -686,75 +704,63 @@ export default {
           copy[currentTaskIndex].completed = true;
           this.tasks = copy
         }
-        setTimeout(() => {
-          this.changeTask(newCurrentTask.id)
-          if (this.autoplay) {
-            this.play()
-          }
-        }, 1000)
-        
+        this.changeTask(newCurrentTask.id)
+        if (this.autoplay) {
+          this.play()
+        }
       }
     },
     invokeSave() {
       this.saving = true;
       this.$refs.editor._data.state.editor.save()
       .then((data) => {
-        setTimeout(() => {
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).get().then((doc) => {
-            var taskLength = this.currentTask.length
-            if (!taskLength) {
-              taskLength = { label: '1 hour', value: 3600 }
-            }
-            console.log({data})
-            db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).set({
-              notes: data,
-              title: this.currentTask.title,
-              length: taskLength,
-              elapsed: this.currentTask.elapsed|0,
-              completed: this.currentTask.complete|false
-            }, {merge: true}).then(() => {
-              this.saving = false;
-            })
-          })
-        }, 1111)
-      })
-
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            options: {
-              lightningMode: this.lightningMode,
-              shuffle: this.shuffle,
-              autoplay: this.autoplay,
-              color: this.activeColor,
-            },
-            workingFolder: this.currentFolder,
-            workingTask: this.currentTask.id
+        db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).get().then((doc) => {
+          var taskLength = this.currentTask.length
+          if (!taskLength) {
+            taskLength = { label: '1 hour', value: 3600 }
+          }
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.currentTask.id).set({
+            notes: data,
+            title: this.currentTask.title,
+            length: taskLength,
+            elapsed: this.currentTask.elapsed|0,
+            completed: this.currentTask.complete|false
           }, {merge: true}).then(() => {
             this.saving = false;
           })
         })
-      }, 1111)
+      })
 
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-          db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
-            tasks: this.tasks,
-          }, { merge: true }).then(() => {
-            this.saving = false;
-          })
+      db.collection('Users').doc(this.uid).get().then((doc) => {
+        db.collection('Users').doc(this.uid).set({
+          options: {
+            lightningMode: this.lightningMode,
+            shuffle: this.shuffle,
+            autoplay: this.autoplay,
+            color: this.activeColor,
+          },
+          workingFolder: this.currentFolder,
+          workingTask: this.currentTask.id
+        }, {merge: true}).then(() => {
+          this.saving = false;
         })
-      }, 1111)
+      })
+
+      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+          tasks: this.tasks,
+        }, { merge: true }).then(() => {
+          this.saving = false;
+        })
+      })
     },
     goPremium(start = true) {
       this.premium = !this.premium;
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            premium: !start
-          }, { merge: true })
-        })
-      }, 1111)
+      db.collection('Users').doc(this.uid).get().then((doc) => {
+        db.collection('Users').doc(this.uid).set({
+          premium: !start
+        }, { merge: true })
+      })
     },
     logout() {
       auth.signOut().then(() => {
@@ -821,22 +827,19 @@ export default {
       this.tasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
       this.shuffledTasks.push({title: this.newTaskTitle, id: newTaskId, completed: false})
 
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => {
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set({
-            id: newTaskId,
-            title: this.newTaskTitle,
-            length: { value: 3600, label: '1 hour'},
-            notes: newTask.notes,
-            elapsed: 0,
-            completed: false
-          }).then(() => {
-            this.saving = false;
-            this.newTaskTitle = '';
-          })
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => {
+        db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set({
+          id: newTaskId,
+          title: this.newTaskTitle,
+          length: { value: 3600, label: '1 hour'},
+          notes: newTask.notes,
+          elapsed: 0,
+          completed: false
+        }).then(() => {
+          this.saving = false;
+          this.newTaskTitle = '';
         })
-      }, 1111)
-      this.$refs.editor._data.state.editor.render(newTask.notes)
+      })
       return newTask;
     },
     addNewFolder() {
@@ -845,36 +848,30 @@ export default {
       var newFolder = {name: this.newFolderName, id: newFolderId}
       this.folders.push(newFolder)
 
-      setTimeout(() => {
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            folders: this.folders,
-          }, { merge: true }).then(() => {
-            this.saving = false;
-          })
-        }, 1111)
-      })
-
-      this.saving = true;
-      setTimeout(() => {
+      db.collection('Users').doc(this.uid).get().then((doc) => {
+        db.collection('Users').doc(this.uid).set({
+          folders: this.folders,
+        }, { merge: true }).then(() => {
+          this.saving = false;
+        })
+        this.saving = true;
         db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).get().then((doc) => {
           db.collection('Users').doc(this.uid).collection('Folders').doc(newFolderId).set({
             name: this.newFolderName,
           }, { merge: true }).then(() => {
-            this.saving = false;
             this.newFolderName = '';
           })
         })
-      }, 1111)
-      return newFolder
+      })
+      return newFolder;
     },
     play() {
+      this.progressBarWidth = 'calc(100vw - 30px)'
       this.working = true
-      var increment = 100/this.currentTask.length.value;
-      this.currentTask.elapsed = increment;
       this.timer = setInterval(() => {
-        this.currentTask.elapsed += increment;
-        if (this.currentTask.elapsed >= 100) {
+        this.currentTask.elapsed = this.currentTask.elapsed+1/10;
+        console.log(this.currentTask.elapsed)
+        if (this.currentTask.elapsed >= this.currentTask.length.value) {
           if (this.autoplay) {
             this.skip(true)
           } else {
@@ -882,11 +879,14 @@ export default {
           }
           clearInterval(this.timer);
         }
-      }, 1000)
+        this.progressBarMaxWidth = this.currentTask.elapsed/this.currentTask.length.value*100+'%'
+      }, 1000/10)
     },
     pause() {
       this.working = false
+      this.progressBarWidth = 'calc('+this.currentTask.elapsed/this.currentTask.length.value*100+'vw - 30px)'
       clearInterval(this.timer)
+      this.invokeSave()
     }
   }
 }
@@ -971,6 +971,9 @@ body {
     grid-template-columns: 1fr 2fr 1fr;
   }
 }
+button {
+  cursor: pointer;
+}
 input[type="text"]:not(.show), select, textarea, button[type="button"], button[type="submit"].invisible {
   font-family: inherit;
   background: 0;
@@ -1054,7 +1057,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
     align-items: center;
   }
 }
-.color, .progress-bar {
+.color, .progress-bar, .progress-bar-color {
   width: 0;
   position: fixed;
   height: 100vh;
@@ -1063,7 +1066,12 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 .progress-bar {
   left: 30px;
-  transition: width 500ms ease-in-out, background 100ms ease-in-out;
+}
+.progress-bar-color {
+  left: 30px;
+  transition-property: width, background, maxWidth;
+  transition-timing-function: ease-in-out;
+  transition-duration: 100ms, 100ms, 100ms;
 }
 .color {
   left: 0;
@@ -1213,20 +1221,31 @@ a {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(33, 33, 33, .5);
+  background: rgba(222, 222, 222, .5);
   z-index: 101;
+  display: grid;
+  place-items: center;
 }
-.modal {
-  position: absolute;
+.loading {
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0);
+  z-index: 101;
+  cursor: wait;
+}
+.modal {
   background: #fff;
   width: 355px;
   padding: 0 30px;
   margin: 0 auto;
   z-index: 102;
   border-radius: 4px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 button.close-button {
   font-size: 3rem;
