@@ -1,5 +1,5 @@
 <template>
-  <div class="page" v-if="0">
+  <div class="page">
     <div v-if="pageReady">
       <nav class="site-nav">
         <ul>
@@ -17,7 +17,7 @@
         </div>
         <editor @ready="loadEditor = true" ref="editor" :config="config" />
       </main>
-      <footer class="controls" v-if="0">
+      <footer class="controls">
         <ul class="folders">
           <li><button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
             <div v-if="foldersOpen" class="folders-list">
