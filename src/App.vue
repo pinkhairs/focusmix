@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" v-if="0">
     <div v-if="pageReady">
       <nav class="site-nav">
         <ul>
