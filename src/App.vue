@@ -878,7 +878,8 @@ export default {
             this.skip(true)
           } else {
             this.modal = 'moreTime'
-            // play beep
+            var audio = new Audio(require('./assets/sounds/beep.mp3'));
+            audio.play();
           }
           clearInterval(this.timer);
         }
