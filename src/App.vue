@@ -704,12 +704,12 @@ export default {
         }
       }
       if (completed) {
-        var audio = new Audio('./assets/sounds/success.mp3');
+        var audio = new Audio(require('./assets/sounds/success.mp3'));
         audio.play();
         this.currentTask.elapsed = this.currentTask.length.value
         this.currentTask.completed = true
       } else {
-        var audio = new Audio('./assets/sounds/beep.mp3');
+        var audio = new Audio(require('./assets/sounds/beep.mp3'));
         audio.play();
       }
     },
