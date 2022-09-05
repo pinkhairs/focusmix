@@ -20,7 +20,7 @@
       <footer class="controls">
         <ul class="folders">
           <li>
-            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button"><img src="./assets/images/queue.svg" alt="Folder" /></button>
             <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
             <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
@@ -50,13 +50,13 @@
         </ul>
         <div class="action">
           <div class="tooltip">
-            <button :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode" v-if="authenticated">
+            <button type="button" :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode" v-if="authenticated">
               <img src="./assets/images/lightning.svg" alt="Lightning Mode" aria-label="Halves the remaining time" />
             </button>
             <span class="tooltiptext">Lightning</span>
           </div>
           <div class="tooltip">
-            <button v-if="authenticated" @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
+            <button type="button" v-if="authenticated" @click="shuffle = !shuffle" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
             <span class="tooltiptext">Shuffle</span>
           </div>
           <div class="browse">
@@ -81,7 +81,7 @@
             <span class="tooltiptext">Autoplay</span>
           </div>
             <ul class="folders">
-              <li v-if="authenticated"><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
+              <li v-if="authenticated && premium"><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
               <div class="queue-list" v-if="queueOpen">
                 <div>
                   <div v-if="shuffle">
@@ -385,59 +385,77 @@ export default {
     }
   },
   mounted() {
-    auth.onAuthStateChanged((user) => {
-      var saveInterval = 7777
-      if (user) {
-        var getQueryVariable = (variable) => {
-          var query = window.location.search.substring(1);
-          var vars = query.split("&");
-          for (var i=0;i<vars.length;i++) {
-            var pair = vars[i].split("=");
-            if(pair[0] == variable){return pair[1];}
-          }
-          return(false);
-        }
-        this.uid = user.uid
-        this.pullData();
-        this.authenticated = true
-
-        if (getQueryVariable('mode') !== 'signIn') return;
-
-        auth.fetchSignInMethodsForEmail(localStorage.getItem('emailForSignIn')).then((methods) => {
-          if (methods.length == 0) {
-            if (localStorage.getItem('emailForSignIn') && getQueryVariable('mode') === 'signIn') {
-              const credential = firebase.auth.EmailAuthProvider.credentialWithLink(localStorage.getItem('emailForSignIn'), window.location.href)
-            }
-          } else {
-            if (auth.isSignInWithEmailLink(window.location.href)) {
-              const email = localStorage.getItem('emailForSignIn')
-              if (!email) {
-                email = window.prompt('Please provide your email for confirmation.')
-              }
-              if (email) {
-                auth.signInWithEmailLink(email, window.location.href)
-                .then(() => {
-                  this.modal = 'account';
-                  localStorage.removeItem('emailForSignIn');
-                  window.history.pushState({}, document.title, window.location.pathname);
-                });
-              } else {
-                alert('Try again.')
-              }
-            }
-          }
-        })
-      } else {
-        this.uid = false
-        const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
-        this.activeColor = randomColor
-        this.createWelcome()
-        saveInterval = 1111
+    var getQueryVariable = (variable) => {
+      var query = window.location.search.substring(1);
+      var vars = query.split("&");
+      for (var i=0;i<vars.length;i++) {
+        var pair = vars[i].split("=");
+        if(pair[0] == variable){return pair[1];}
       }
+      return(false);
+    }
+
+    if (getQueryVariable('mode') === 'signIn') {
+      auth.fetchSignInMethodsForEmail(localStorage.getItem('emailForSignIn')).then((methods) => {
+        if (auth.isSignInWithEmailLink(window.location.href)) {
+          const email = localStorage.getItem('emailForSignIn')
+          if (!email) {
+            email = window.prompt('Please provide your email for confirmation.')
+          } if (email) {
+            auth.signInWithEmailLink(email, window.location.href)
+            .then(() => {
+              this.authenticated = true;
+              this.modal = 'account';
+              this.email = email
+              this.uid = auth.currentUser.uid
+              localStorage.removeItem('emailForSignIn');
+              window.history.pushState({}, document.title, window.location.pathname);
+              setTimeout(() => {
+                this.pageReady = true
+              }, 888)
+              setTimeout(() => {
+                if (methods.length === 0) {
+                  this.convertAccount()
+                }
+              }, 888)
+            });
+          } else {
+            alert('Try again.')
+          }
+        }
+      })
       window.setInterval(() => {
         this.invokeSave()
-      }, saveInterval)
-    });
+      }, 7777)
+    } else {
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          this.setLocalStorage('setupComplete', null)
+          this.uid = user.uid
+          this.email = user.email
+          this.pullData();
+          this.authenticated = true
+          setTimeout(() => {
+            this.pageReady = true
+          }, 888)
+        } else {
+          this.uid = false
+          const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
+          this.activeColor = randomColor
+          this.createWelcome()
+          this.setLocalStorage('setupComplete', false)
+
+          setTimeout(() => {
+            this.pageReady = true
+            this.setLocalStorage('setupComplete', true)
+          }, 888)
+
+          setInterval(() => {
+            this.invokeSave()
+          }, 1111)
+        }
+      });
+    }
   },
   watch: {
     title(newValue, previousValue){
@@ -462,15 +480,18 @@ export default {
         }
         this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
         var editorReady = new Promise((resolve, reject) => {
-          setTimeout(() => {
-            if (this.$refs.editor) {
-              resolve(this.$refs.editor)
-            } else {
-              reject(false)
-            }
-          }, 555)
+          if (this.$refs.editor) {
+            resolve(true)
+          }
+          reject(false)
         })
-        editorReady.then(() => this.$refs.editor._data.state.editor.render(this.notes))
+        editorReady.then(() => {
+          this.$refs.editor._data.state.editor.render(this.notes)
+        }).catch(() => {
+          setTimeout(() => {
+            this.$refs.editor._data.state.editor.render(this.notes)
+          }, 888)
+        })
       }
     }
   },
@@ -538,6 +559,61 @@ export default {
         audio.play();
       }
     },
+    convertAccount() {
+      var onlyFolder = { id: uuidv4(), name: 'Folder' }
+      this.title = this.getLocalStorage('title')
+      this.notes = JSON.parse(this.getLocalStorage('notes'))
+      this.seconds = JSON.parse(this.getLocalStorage('seconds'))
+      this.elapsed = this.getLocalStorage('elapsed')
+      this.completed = this.getLocalStorage('completed')
+      this.taskId = this.getLocalStorage('taskId')
+      this.color = this.getLocalStorage('color')
+      this.currentFolder = onlyFolder
+
+      db.collection('Users').doc(this.uid).set({
+        options: {
+          lightningMode: this.lightningMode,
+          shuffle: this.shuffle,
+          autoplay: this.autoplay,
+          color: this.activeColor,
+        },
+        workingFolder: this.currentFolder,
+        workingTask: this.taskId,
+        folders: [onlyFolder]
+      })
+
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
+        notes: this.notes,
+        title: this.title,
+        seconds: this.seconds,
+        elapsed: this.elapsed,
+        completed: this.completed
+      })
+
+      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+        tasks: [
+          {
+            id: this.taskId,
+            title: this.title,
+            completed: this.completed
+          }
+        ],
+      })
+      
+      var editorReady = new Promise((resolve, reject) => {
+        if (this.$refs.editor) {
+          resolve(true)
+        }
+        reject(false)
+      })
+      editorReady.then(() => {
+        this.$refs.editor._data.state.editor.render(this.notes)
+      }).catch(() => {
+        setTimeout(() => {
+          this.$refs.editor._data.state.editor.render(this.notes)
+        }, 888)
+      })
+    },
     play() {
       this.completed = false;
       this.progressBarWidth = 'calc(100vw - 30px)'
@@ -582,14 +658,7 @@ export default {
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = JSON.parse(this.getLocalStorage('elapsed')) ? JSON.parse(this.getLocalStorage('elapsed')) : 0
       this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
-      setTimeout(() => {
-        this.pageReady = true;
-      }, 333)
-
-      this.setLocalStorage('seconds', JSON.stringify(this.seconds))
-      this.setLocalStorage('notes', JSON.stringify(this.notes))
-      this.setLocalStorage('completed', this.completed)
-      this.setLocalStorage('elapsed', this.elapsed)
+      this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : uuidv4()
     },
     addNewFolder(folderName) {
       var folderId = uuidv4();
@@ -620,6 +689,7 @@ export default {
         completed: false,
       }
       if (setCurrent) {
+        this.setLocalStorage('taskId', taskId)
         this.setLocalStorage('seconds', this.seconds)
         this.setLocalStorage('completed', this.completed)
         this.setLocalStorage('elapsed', this.elapsed)
@@ -658,7 +728,11 @@ export default {
           }).catch(() => reject(false))
         }).catch(() => reject(false))
       })
-      pageReady.then(() => {this.pageReady = true }).catch(() => {this.pageReady = false})
+      pageReady.then(() => {
+        this.pageReady = true
+      }).catch(() => {
+        this.pageReady = false
+      })
     },
     shuffleTasks() {
       var original = this.tasks
@@ -691,53 +765,31 @@ export default {
       this.setLocalStorage('seconds', JSON.stringify(this.seconds))
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
-      this.setLocalStorage('title', this.title)
-      this.$refs.editor._data.state.editor.save().then((data) => {
-        this.setLocalStorage('notes', JSON.stringify(data))
-      })
-      return;
+      this.setLocalStorage('taskId', this.taskId)
+
       this.saving = true;
-      this.$refs.editor._data.state.editor.save()
-      .then((data) => {
-        db.collection('Users').doc(this.uid).collection('Tasks').doc(this.id).get().then((doc) => {
-          var taskLength = this.seconds
-          if (!taskLength) {
-            taskLength = { label: '1 hour', value: 3600 }
-          }
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.id).set({
-            notes: data,
-            title: this.title,
-            seconds: taskLength,
-            elapsed: this.elapsed|0,
-            completed: this.complete|false
-          }, {merge: true}).then(() => {
-            this.saving = false;
+
+      var editorReady = new Promise((resolve, reject) => {
+        if (this.$refs.editor) {
+          resolve(true)
+        }
+        reject(false)
+      })
+
+      editorReady.then(() => {
+        this.$refs.editor._data.state.editor.save().then((data) => {
+          this.notes = data
+          this.setLocalStorage('notes', JSON.stringify(data))
+        })
+      }).catch(() => {
+        setTimeout(() => {
+          this.$refs.editor._data.state.editor.save().then((data) => {
+            this.notes = data
+            this.setLocalStorage('notes', JSON.stringify(data))
           })
-        })
+        }, 888)
       })
-
-      db.collection('Users').doc(this.uid).get().then((doc) => {
-        db.collection('Users').doc(this.uid).set({
-          options: {
-            lightningMode: this.lightningMode,
-            shuffle: this.shuffle,
-            autoplay: this.autoplay,
-            color: this.activeColor,
-          },
-          workingFolder: this.currentFolder,
-          workingTask: this.id
-        }, {merge: true}).then(() => {
-          this.saving = false;
-        })
-      })
-
-      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
-        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
-          tasks: this.tasks,
-        }, { merge: true }).then(() => {
-          this.saving = false;
-        })
-      })
+      if (!this.uid) return;
     },
     logout() {
       auth.signOut().then(() => {
