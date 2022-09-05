@@ -246,7 +246,7 @@ export default {
       loadEditor: false,
       pageReady: false,
       activeColor: '#ffffff',
-      progressBarWidth: '0px',
+      progressBarWidth: '1px',
       progressBarMaxWidth: 'none',
       colors: [
         '#ffe8fa',
@@ -429,8 +429,11 @@ export default {
           }
         }
       })
-      window.setInterval(() => {
+      setTimeout(() => {
         this.invokeSave()
+        setInterval(() => {
+          this.invokeSave()
+        }, 3333)
       }, 7777)
     } else {
       auth.onAuthStateChanged((user) => {
@@ -477,12 +480,6 @@ export default {
     },
     pageReady(newValue) {
       if (newValue) {
-        if (this.elapsed) {
-          this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
-        } else {
-          this.progressBarWidth = 0;
-        }
-        this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
         var editorReady = new Promise((resolve, reject) => {
           if (this.$refs.editor) {
             resolve(true)
@@ -707,16 +704,19 @@ export default {
           this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
           this.activeColor = doc.data().options.color
+          this.taskId = doc.data().workingTask
           return doc;
         }).then((doc) => {
-          db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).get().then(doc => {
             if (doc.exists) {
-              this.taskId = doc.data().id
               this.title = doc.data().title
               this.seconds = doc.data().seconds
               this.completed = doc.data().completed
               this.elapsed = doc.data().elapsed
               this.notes = doc.data().notes
+
+              this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
+              this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
             }
           }).then(() => {
             db.collection('Users').doc(this.uid).get().then((doc) => {
