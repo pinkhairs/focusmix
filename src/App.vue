@@ -451,11 +451,10 @@ export default {
             this.pageReady = true
             this.setLocalStorage('setupComplete', true)
           }, 888)
-
-          setInterval(() => {
-            this.invokeSave()
-          }, 1111)
         }
+        setInterval(() => {
+          this.invokeSave()
+        }, 3333)
       });
     }
   },
@@ -566,7 +565,7 @@ export default {
       this.title = this.getLocalStorage('title')
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
-      this.elapsed = this.getLocalStorage('elapsed')
+      this.elapsed = parseInt(this.getLocalStorage('elapsed'))
       this.completed = this.getLocalStorage('completed')
       this.taskId = this.getLocalStorage('taskId')
       this.activeColor = this.getLocalStorage('color')
@@ -574,7 +573,6 @@ export default {
 
       db.collection('Users').doc(this.uid).set({
         options: {
-          lightningMode: this.lightningMode,
           shuffle: this.shuffle,
           autoplay: this.autoplay,
           color: this.activeColor,
@@ -621,7 +619,10 @@ export default {
       this.progressBarWidth = 'calc(100vw - 30px)'
       this.working = true
       this.timer = setInterval(() => {
-        this.elapsed = this.elapsed+1/10;
+        this.elapsed = this.elapsed+1;
+        if (this.lightningMode) {
+          this.elapsed = this.elapsed+1;
+        }
         if (this.elapsed >= this.seconds.value) {
           if (this.autoplay) {
             this.skip(true)
@@ -632,8 +633,8 @@ export default {
           }
           clearInterval(this.timer);
         }
-        this.progressBarMaxWidth = this.elapsed/this.seconds.value*100+'%'
-      }, 1000/10)
+        this.progressBarMaxWidth = '100%'
+      }, 1000)
     },
     getLocalStorage(key) {
       return localStorage.getItem(key)
@@ -658,7 +659,7 @@ export default {
       this.title = this.getLocalStorage('title') ? this.getLocalStorage('title') : 'Check it out'
       this.seconds = JSON.parse(this.getLocalStorage('seconds')) ? JSON.parse(this.getLocalStorage('seconds'))  : {value: 60, label: '1 minute'}
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
-      this.elapsed = JSON.parse(this.getLocalStorage('elapsed')) ? JSON.parse(this.getLocalStorage('elapsed')) : 0
+      this.elapsed = this.getLocalStorage('elapsed') ? parseInt(this.getLocalStorage('elapsed')) : 0
       this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
       this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : uuidv4()
       this.activeColor = this.getLocalStorage('color') ? this.getLocalStorage('color') : this.colors[Math.floor(Math.random() * this.colors.length)];
@@ -681,6 +682,7 @@ export default {
     },
     pause() {
       this.working = false
+      this.transitionDuration = '0s, 100ms, 100ms'
       this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
       clearInterval(this.timer)
       this.invokeSave()
@@ -704,7 +706,6 @@ export default {
     pullData() {
       let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.lightningMode = doc.data().options.lightningMode
           this.shuffle = doc.data().options.shuffle
           this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
@@ -771,6 +772,7 @@ export default {
       this.progressBarWidth = '1px'
     },
     invokeSave() {
+      console.log(this.elpased)
       this.setLocalStorage('seconds', JSON.stringify(this.seconds))
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
@@ -803,14 +805,13 @@ export default {
 
       db.collection('Users').doc(this.uid).set({
         options: {
-          lightningMode: this.lightningMode,
           shuffle: this.shuffle,
           autoplay: this.autoplay,
           color: this.activeColor,
         },
         workingFolder: this.currentFolder,
         workingTask: this.taskId,
-        folders: [onlyFolder]
+        folders: this.folders
       }, { merge: true })
 
       db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
@@ -1021,8 +1022,9 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   left: 30px;
 }
 .progress-bar-color {
+  width: 1px;
   left: 30px;
-  transition-property: width, background, maxWidth;
+  transition-property: width, background, max-width;
   transition-timing-function: ease-in-out;
   transition-duration: 100ms, 100ms, 100ms;
 }
