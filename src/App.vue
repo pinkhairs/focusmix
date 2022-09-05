@@ -20,7 +20,9 @@
       <footer class="controls">
         <ul class="folders">
           <li>
-            <button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+            <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
                 <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
@@ -48,18 +50,18 @@
         </ul>
         <div class="action">
           <div class="tooltip">
-            <button type="button" :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode">
+            <button :class="lightningMode ? '' : 'muted'" @click="lightningMode = !lightningMode" v-if="authenticated">
               <img src="./assets/images/lightning.svg" alt="Lightning Mode" aria-label="Halves the remaining time" />
             </button>
             <span class="tooltiptext">Lightning</span>
           </div>
           <div class="tooltip">
-            <button @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
+            <button v-if="authenticated" @click="shuffle = !shuffle" type="button" :class="shuffle ? '' : 'muted'"><img src="./assets/images/shuffle.svg" alt="Shuffle" aria-label="Shuffle tasks" /></button>
             <span class="tooltiptext">Shuffle</span>
           </div>
           <div class="browse">
             <div class="muted tooltip">
-              <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
+              <button @click="authenticated ? startOver() : modal = 'account'" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
               <span class="tooltiptext">Start over</span>
             </div>
             <div>
@@ -67,17 +69,19 @@
               <button v-else type="button"  @click="play()"><img src="./assets/images/play.svg" alt="Start" aria-label="Start task" /></button>
             </div>
             <div class="muted tooltip">
-              <button @click="skip(false)" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
+              <button @click="authenticated ? skip(false) : modal = 'account'" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
               <span class="tooltiptext">Next task</span>
             </div>
           </div>
           <div class="tooltip">
-            <button v-if="autoplay" @click="autoplay = !autoplay" type="button"><img src="./assets/images/autoplay.svg" alt="Autoplay" aria-label="Start next task automatically" /></button>
-            <button v-else @click="autoplay = !autoplay" type="button" class="muted"><img src="./assets/images/autoplay-off.svg" alt="Autoplay" aria-label="Don’t next task automatically" /></button>
+            <div v-if="authenticated">
+              <button v-if="autoplay" @click="autoplay = !autoplay" type="button"><img src="./assets/images/autoplay.svg" alt="Autoplay" aria-label="Start next task automatically" /></button>
+              <button v-else @click="autoplay = !autoplay" type="button" class="muted"><img src="./assets/images/autoplay-off.svg" alt="Autoplay" aria-label="Don’t next task automatically" /></button>
+            </div>
             <span class="tooltiptext">Autoplay</span>
           </div>
             <ul class="folders">
-              <li><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
+              <li v-if="authenticated"><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
               <div class="queue-list" v-if="queueOpen">
                 <div>
                   <div v-if="shuffle">
@@ -124,7 +128,7 @@
         <div v-else>
           <h2>Your account</h2>
           <p>Log into your existing account or create a new one if none exists.</p>
-          <p style="font-size: 16px">Wondering why you should register? Access your tasks and preferences across devices.</p>
+          <p style="font-size: 16px">Wondering why you should register? Add a queue and access your notes/preferences across devices for free.</p>
           <form @submit.prevent="sendEmailSignIn">
             <p><label>Email
               <input :disabled="waitingForSignin" v-model="email" type="email" required />
@@ -358,22 +362,17 @@ export default {
           type: "paragraph"
         },
         {
-          data: {text: 'As you can see, the page is a progress bar. (Click the color bar the left side to change to your favorite.)'},
+          data: {text: 'As you’ll see, the page is a progress bar. (Click the color bar the left side to change to your favorite.)'},
           id: "HcSf6A18HS",
           type: "paragraph"
         },
         {
-          data: {text: 'Create folders on the left side and organize tasks on the right side.'},
+          data: {text: 'This area you’re reading is for notes while you’re working.'},
           id: "l8gu-1k-6S",
           type: "paragraph"
         },
         {
-          data: {text: 'This area you’re reading is for your notes.'},
-          id: "l8gu-1k-6S",
-          type: "paragraph"
-        },
-        {
-          data: {text: 'Other features include lightning mode ⚡️ (halves the remaining time), shuffle, and autoplay.'},
+          data: {text: 'Free features behind a login include a queue and archive, lightning mode ⚡️ (halves the remaining time), shuffle, autoplay, and cross-device access.'},
           id: "seYBLpHl2W",
           type: "paragraph"
         },
@@ -460,9 +459,16 @@ export default {
           this.progressBarWidth = 0;
         }
         this.transitionDuration = this.timeLength.value-this.elapsed+'s, 100ms, 100ms'
-        setTimeout(() => {
-          this.$refs.editor._data.state.editor.render(this.notes)
-        }, 888)
+        var editorReady = new Promise((resolve, reject) => {
+          setTimeout(() => {
+            if (this.$refs.editor) {
+              resolve(this.$refs.editor)
+            } else {
+              reject(false)
+            }
+          }, 555)
+        })
+        editorReady.then(() => this.$refs.editor._data.state.editor.render(this.notes))
       }
     }
   },
@@ -473,6 +479,63 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    skip(completed = false) {
+      var tasks = this.tasks
+      if (this.shuffle) {
+        tasks = this.shuffledTasks
+      }
+      var thisTask = tasks.indexOf(tasks.find(element => element.id === this.currentTask.id))
+      var nextTask = this.getNextArrItem(thisTask, tasks)
+
+      if (nextTask) {
+        this.changeTask(nextTask.id)
+        if (this.autoplay) {
+          this.play()
+        }
+      } else {
+        this.newTaskTitle = 'New task'
+        var newCurrentTask = this.addNewTask()
+        if (completed) {
+          var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.currentTask.id))
+
+          var original = this.tasks
+          var copy = [].concat(original);
+          copy[currentTaskIndex].completed = true;
+          this.tasks = copy
+        }
+        this.changeTask(newCurrentTask.id)
+        if (this.autoplay) {
+          this.play()
+        }
+      }
+      if (completed) {
+        var audio = new Audio(this.success);
+        audio.play();
+        this.currentTask.elapsed = this.currentTask.length.value
+        this.currentTask.completed = true
+      } else {
+        var audio = new Audio(this.beep);
+        audio.play();
+      }
+    },
+    play() {
+      this.progressBarWidth = 'calc(100vw - 30px)'
+      this.working = true
+      this.timer = setInterval(() => {
+        this.currentTask.elapsed = this.currentTask.elapsed+1/10;
+        if (this.currentTask.elapsed >= this.currentTask.length.value) {
+          if (this.autoplay) {
+            this.skip(true)
+          } else {
+            this.modal = 'moreTime'
+            var audio = new Audio(this.beep);
+            audio.play();
+          }
+          clearInterval(this.timer);
+        }
+        this.progressBarMaxWidth = this.currentTask.elapsed/this.currentTask.length.value*100+'%'
+      }, 1000/10)
+    },
     getLocalStorage(key) {
       return localStorage.getItem(key)
     },
@@ -494,11 +557,13 @@ export default {
     },
     createWelcome() {
       this.title = this.getLocalStorage('title') ? this.getLocalStorage('title') : 'Check it out'
-      this.timeLength = JSON.parse(this.getLocalStorage('timeLength')) ? JSON.parse(this.getLocalStorage('timeLength'))  : {value: 3600, label: '1 hour'}
+      this.timeLength = JSON.parse(this.getLocalStorage('timeLength')) ? JSON.parse(this.getLocalStorage('timeLength'))  : {value: 60, label: '1 minute'}
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = JSON.parse(this.getLocalStorage('elapsed')) ? JSON.parse(this.getLocalStorage('elapsed')) : 0
       this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
-      this.pageReady = true;
+      setTimeout(() => {
+        this.pageReady = true;
+      }, 333)
 
       this.setLocalStorage('timeLength', JSON.stringify(this.timeLength))
       this.setLocalStorage('notes', JSON.stringify(this.notes))
@@ -765,6 +830,7 @@ input[type="text"]:not(.show), select, textarea, button[type="button"], button[t
   border: 0;
   display: block;
   border-radius: 4px;
+  color: #000;
 }
 button[type="button"] {
   font-size: 15px;
