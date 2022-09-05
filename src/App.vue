@@ -1098,14 +1098,14 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 @media (min-width: 0px) and (max-width: 1023px) {
   .queue-list {
-    right: 10px;
+    left: 0;
     bottom: 120px;
   }
 }
 @media (min-width: 1024px) {
   .queue-list {
     bottom: 60px;
-    right: 150px;
+    left: 0;
   }
 }
 .change-folder {
