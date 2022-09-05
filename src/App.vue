@@ -108,13 +108,13 @@
           </ul>
         </div>
         <div class="mark-complete">
-          <button @click="skip(true)" v-if="completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
-          <button v-else @click="skip(true)" class="muted" type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
+          <button @click="completed = false" v-if="completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
+          <button v-else @click="skip(true)" type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
         </div>
       </footer>
       <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: activeColor }"></div>
       <div @click="goToNextColor()" class="progress-bar">
-        <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration, maxWidth: progressBarMaxWidth}"></div>
+        <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration, maxWidth: 'calc('+progressBarMaxWidth+' - 30px)'}"></div>
       </div>
       <div @click="foldersOpen = false; queueOpen = false" class="screen" v-if="foldersOpen || queueOpen"></div>
       <div @click="modal = false; waitingForSignin = false" class="overlay" v-if="modal"></div>
@@ -351,7 +351,7 @@ export default {
       welcomeBlocks: [
         {
           data: {
-            text: 'Hi, Focusmix is a tool for getting stuff done.'
+            text: 'Welcome, Focusmix is a tool for getting stuff done.'
           },
           id: "moTtRFW4VL",
           type: "paragraph"
@@ -386,6 +386,7 @@ export default {
   },
   mounted() {
     auth.onAuthStateChanged((user) => {
+      var saveInterval = 7777
       if (user) {
         var getQueryVariable = (variable) => {
           var query = window.location.search.substring(1);
@@ -431,10 +432,11 @@ export default {
         const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
         this.activeColor = randomColor
         this.createWelcome()
+        saveInterval = 1111
       }
       window.setInterval(() => {
         this.invokeSave()
-      }, 7777)
+      }, saveInterval)
     });
   },
   watch: {
@@ -480,21 +482,39 @@ export default {
   },
   methods: {
     skip(completed = false) {
-      var tasks = this.tasks
-      if (this.shuffle) {
-        tasks = this.shuffledTasks
+      if (completed) {
+        this.completed = true
+        if (this.authenticated) {
+          if (this.tasks.length > 1) {
+            var tasks = this.tasks
+            if (this.shuffle) {
+              tasks = this.shuffledTasks
+            }
+            var thisTask = tasks.indexOf(tasks.find(element => element.id === this.taskId))
+            var nextTask = this.getNextArrItem(thisTask, tasks)
+            this.changeTask(nextTask.id)
+          }
+        } else {
+          this.modal = 'account'
+          this.completed = true
+          var audio = new Audio(this.success);
+          audio.play();
+          this.pause()
+        }
+      } else {
+        var audio = new Audio(this.beep);
+        this.modal = 'moreTime'
+        this.pause()
+        audio.play();
       }
-      var thisTask = tasks.indexOf(tasks.find(element => element.id === this.id))
-      var nextTask = this.getNextArrItem(thisTask, tasks)
+      return
 
       if (nextTask) {
-        this.changeTask(nextTask.id)
         if (this.autoplay) {
           this.play()
         }
       } else {
         this.newTaskTitle = 'New task'
-        var newCurrentTask = this.addNewTask()
         if (completed) {
           var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.id))
 
@@ -533,7 +553,7 @@ export default {
           }
           clearInterval(this.timer);
         }
-        this.progressBarMaxWidth = this.currentTask.elapsed/this.currentTask.length.value*100+'%'
+        this.progressBarMaxWidth = this.elapsed/this.seconds.value*100+'%'
       }, 1000/10)
     },
     getLocalStorage(key) {
@@ -571,22 +591,18 @@ export default {
       this.setLocalStorage('elapsed', this.elapsed)
     },
     addNewFolder(folderName) {
-      var derId = uuidv4();
+      var folderId = uuidv4();
       var newFolder = {
         id: folderId,
         name: folderName
       }
-      if (this.uid) {
-
-      } else {
-        var folders = []
-        if (this.getLocalStorage('folders')) {
-          folders = JSON.parse(this.getLocalStorage('folders'))
-        }
-        folders.push(newFolder)
-        this.setLocalStorage('folders', JSON.stringify(folders))
-        this.folders = folders
+      var folders = []
+      if (this.getLocalStorage('folders')) {
+        folders = JSON.parse(this.getLocalStorage('folders'))
       }
+      folders.push(newFolder)
+      this.setLocalStorage('folders', JSON.stringify(folders))
+      this.folders = folders
       return newFolder
     },
     pause() {
@@ -601,17 +617,6 @@ export default {
         id: taskId,
         title: taskTitle,
         completed: false,
-      }
-      if (this.uid) {
-
-      } else {
-        var tasks = []
-        if (this.getLocalStorage('tasks')) {
-          tasks = JSON.parse(this.getLocalStorage('tasks'))
-        }
-        tasks.push(newTask)
-        this.setLocalStorage('tasks', JSON.stringify(tasks))
-        this.tasks = tasks
       }
       if (setCurrent) {
         this.setLocalStorage('seconds', this.seconds)
@@ -670,20 +675,27 @@ export default {
       }
       return arr[nextIndex]
     },
+    startOver() {
+      this.animation = 'none'
+      this.transitionDuration = '0s, 100ms, 100ms'
+      var originalWorking = this.working
+      this.working = false
+      clearInterval(this.timer);
+      this.elapsed = 0
+      setTimeout(() => {
+        this.transitionDuration = this.seconds.value+'s, 100ms, 100ms'
+      }, 333)
+      this.progressBarWidth = '1px'
+    },
     invokeSave() {
-      if (this.uid) {
-
-      } else {
-        console.log('Saving...')
-        this.setLocalStorage('seconds', JSON.stringify(this.seconds))
-        this.setLocalStorage('completed', this.completed)
-        this.setLocalStorage('elapsed', this.elapsed)
-        this.setLocalStorage('title', this.title)
-        this.$refs.editor._data.state.editor.save().then((data) => {
-          this.setLocalStorage('notes', JSON.stringify(data))
-        })
-        return;
-      }
+      this.setLocalStorage('seconds', JSON.stringify(this.seconds))
+      this.setLocalStorage('completed', this.completed)
+      this.setLocalStorage('elapsed', this.elapsed)
+      this.setLocalStorage('title', this.title)
+      this.$refs.editor._data.state.editor.save().then((data) => {
+        this.setLocalStorage('notes', JSON.stringify(data))
+      })
+      return;
       this.saving = true;
       this.$refs.editor._data.state.editor.save()
       .then((data) => {
