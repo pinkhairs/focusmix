@@ -19,7 +19,8 @@
       </main>
       <footer class="controls">
         <ul class="folders">
-          <li><button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
+          <li>
+            <button style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
                 <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
@@ -111,6 +112,7 @@
       <div @click="goToNextColor()" class="progress-bar">
         <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration, maxWidth: progressBarMaxWidth}"></div>
       </div>
+      <div @click="foldersOpen = false; queueOpen = false" class="screen" v-if="foldersOpen || queueOpen"></div>
       <div @click="modal = false; waitingForSignin = false" class="overlay" v-if="modal"></div>
       <div class="modal" v-if="modal === 'account'">
         <button @click="modal = false; waitingForSignin = false" type="button" class="close-button">&times;</button>
@@ -1232,6 +1234,17 @@ a {
   right: 0;
   background: rgba(222, 222, 222, .5);
   z-index: 101;
+  display: grid;
+  place-items: center;
+}
+.screen {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(222, 222, 222, 0);
+  z-index: 99;
   display: grid;
   place-items: center;
 }
