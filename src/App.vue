@@ -416,6 +416,8 @@ export default {
               setTimeout(() => {
                 if (methods.length === 0) {
                   this.convertAccount()
+                } else {
+                  this.pullData()
                 }
               }, 888)
             });
@@ -433,8 +435,8 @@ export default {
           this.setLocalStorage('setupComplete', null)
           this.uid = user.uid
           this.email = user.email
-          this.pullData();
           this.authenticated = true
+          this.pullData();
           setTimeout(() => {
             this.pageReady = true
           }, 888)
@@ -567,7 +569,7 @@ export default {
       this.elapsed = this.getLocalStorage('elapsed')
       this.completed = this.getLocalStorage('completed')
       this.taskId = this.getLocalStorage('taskId')
-      this.color = this.getLocalStorage('color')
+      this.activeColor = this.getLocalStorage('color')
       this.currentFolder = onlyFolder
 
       db.collection('Users').doc(this.uid).set({
@@ -659,6 +661,8 @@ export default {
       this.elapsed = JSON.parse(this.getLocalStorage('elapsed')) ? JSON.parse(this.getLocalStorage('elapsed')) : 0
       this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
       this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : uuidv4()
+      this.activeColor = this.getLocalStorage('color') ? this.getLocalStorage('color') : this.colors[Math.floor(Math.random() * this.colors.length)];
+      this.setLocalStorage('color', this.activeColor);
     },
     addNewFolder(folderName) {
       var folderId = uuidv4();
@@ -709,7 +713,12 @@ export default {
         }).then((doc) => {
           db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().workingTask).get().then(doc => {
             if (doc.exists) {
-              this.currentTask = doc.data()
+              this.taskId = doc.data().id
+              this.title = doc.data().title
+              this.seconds = doc.data().seconds
+              this.completed = doc.data().completed
+              this.elapsed = doc.data().elapsed
+              this.notes = doc.data().notes
             }
           }).then(() => {
             db.collection('Users').doc(this.uid).get().then((doc) => {
@@ -766,6 +775,7 @@ export default {
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
       this.setLocalStorage('taskId', this.taskId)
+      this.setLocalStorage('color', this.activeColor)
 
       this.saving = true;
 
@@ -790,6 +800,30 @@ export default {
         }, 888)
       })
       if (!this.uid) return;
+
+      db.collection('Users').doc(this.uid).set({
+        options: {
+          lightningMode: this.lightningMode,
+          shuffle: this.shuffle,
+          autoplay: this.autoplay,
+          color: this.activeColor,
+        },
+        workingFolder: this.currentFolder,
+        workingTask: this.taskId,
+        folders: [onlyFolder]
+      }, { merge: true })
+
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
+        notes: this.notes,
+        title: this.title,
+        seconds: this.seconds,
+        elapsed: this.elapsed,
+        completed: this.completed
+      }, { merge: true })
+
+      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+        tasks: this.tasks,
+      }, { merge: true })
     },
     logout() {
       auth.signOut().then(() => {
