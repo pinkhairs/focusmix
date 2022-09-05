@@ -491,7 +491,7 @@ export default {
         }).catch(() => {
           setTimeout(() => {
             this.$refs.editor._data.state.editor.render(this.notes)
-          }, 888)
+          }, 1111)
         })
       }
     }
@@ -611,7 +611,7 @@ export default {
       }).catch(() => {
         setTimeout(() => {
           this.$refs.editor._data.state.editor.render(this.notes)
-        }, 888)
+        }, 2222)
       })
     },
     play() {
@@ -660,7 +660,7 @@ export default {
       this.seconds = JSON.parse(this.getLocalStorage('seconds')) ? JSON.parse(this.getLocalStorage('seconds'))  : {value: 60, label: '1 minute'}
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = this.getLocalStorage('elapsed') ? parseInt(this.getLocalStorage('elapsed')) : 0
-      this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
+      this.completed = this.getLocalStorage('completed') ? this.getLocalStorage('completed') : false
       this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : uuidv4()
       this.activeColor = this.getLocalStorage('color') ? this.getLocalStorage('color') : this.colors[Math.floor(Math.random() * this.colors.length)];
       this.setLocalStorage('color', this.activeColor);
@@ -772,7 +772,6 @@ export default {
       this.progressBarWidth = '1px'
     },
     invokeSave() {
-      console.log(this.elpased)
       this.setLocalStorage('seconds', JSON.stringify(this.seconds))
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
@@ -799,7 +798,7 @@ export default {
             this.notes = data
             this.setLocalStorage('notes', JSON.stringify(data))
           })
-        }, 888)
+        }, 2222)
       })
       if (!this.uid) return;
 
