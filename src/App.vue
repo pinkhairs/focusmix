@@ -20,7 +20,29 @@
       <footer class="controls">
         <ul class="folders">
           <li>
-            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button"><img src="./assets/images/queue.svg" alt="Folder" /></button>
+            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button" @click="queueOpen = !queueOpen"><img src="./assets/images/queue.svg" alt="Folder" /></button>
+            <div class="queue-list" v-if="queueOpen">
+              <div>
+                <div v-if="shuffle">
+                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
+                    <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
+                    <button v-if="tasks.length > 1 && id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                  </div>
+                </div>
+                <draggable v-else :list="tasks" group="tasks-todo">
+                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
+                    <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                  </div>
+                </draggable>
+              </div>
+              <div>
+                <form @submit.prevent="addNewTask(newTaskTitle)" class="add-new-task">
+                  <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
+                  <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
+                </form>
+              </div>
+            </div>
             <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
             <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
@@ -81,29 +103,10 @@
             <span class="tooltiptext">Autoplay</span>
           </div>
             <ul class="folders">
-              <li v-if="authenticated && premium"><button @click="queueOpen = !queueOpen" type="button"><img src="./assets/images/queue.svg" alt="List" /></button>
-              <div class="queue-list" v-if="queueOpen">
-                <div>
-                  <div v-if="shuffle">
-                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
-                      <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
-                      <button v-if="tasks.length > 1 && id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
-                    </div>
-                  </div>
-                  <draggable v-else :list="tasks" group="tasks-todo">
-                    <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
-                      <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
-                      <button v-if="tasks.length > 1 && id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
-                    </div>
-                  </draggable>
-                </div>
-                <div>
-                  <form @submit.prevent="addNewTask(newTaskTitle)" class="add-new-task">
-                    <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
-                    <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
-                  </form>
-                </div>
-              </div>
+              <li v-if="authenticated && premium">
+                <button @click="queueOpen = !queueOpen" type="button">
+                  <img src="./assets/images/queue.svg" alt="List" />
+                </button>
             </li>
           </ul>
         </div>
@@ -508,21 +511,13 @@ export default {
         this.completed = true
         if (this.authenticated) {
           if (this.tasks.length > 1) {
-            var tasks = this.tasks
-            if (this.shuffle) {
-              tasks = this.shuffledTasks
-            }
-            var thisTask = tasks.indexOf(tasks.find(element => element.id === this.taskId))
-            var nextTask = this.getNextArrItem(thisTask, tasks)
-            this.changeTask(nextTask.id)
           }
         } else {
           this.modal = 'account'
-          this.completed = true
-          var audio = new Audio(this.success);
-          audio.play();
-          this.pause()
         }
+        var audio = new Audio(this.success);
+        audio.play();
+        this.pause()
       } else {
         var audio = new Audio(this.beep);
         this.modal = 'moreTime'
@@ -656,14 +651,16 @@ export default {
       this.invokeSave()
     },
     createWelcome() {
+      var newTaskId = uuidv4()
       this.title = this.getLocalStorage('title') ? this.getLocalStorage('title') : 'Check it out'
       this.seconds = JSON.parse(this.getLocalStorage('seconds')) ? JSON.parse(this.getLocalStorage('seconds'))  : {value: 60, label: '1 minute'}
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = this.getLocalStorage('elapsed') ? parseInt(this.getLocalStorage('elapsed')) : 0
       this.completed = this.getLocalStorage('completed') ? this.getLocalStorage('completed') : false
-      this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : uuidv4()
+      this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : newTaskId
       this.activeColor = this.getLocalStorage('color') ? this.getLocalStorage('color') : this.colors[Math.floor(Math.random() * this.colors.length)];
       this.setLocalStorage('color', this.activeColor);
+      this.setLocalStorage('taskId', newTaskId);
     },
     addNewFolder(folderName) {
       var folderId = uuidv4();
