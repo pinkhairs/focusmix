@@ -61,7 +61,7 @@
           </div>
           <div class="browse">
             <div class="muted tooltip">
-              <button @click="authenticated ? startOver() : modal = 'account'" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
+              <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
               <span class="tooltiptext">Start over</span>
             </div>
             <div>
@@ -539,6 +539,7 @@ export default {
       }
     },
     play() {
+      this.completed = false;
       this.progressBarWidth = 'calc(100vw - 30px)'
       this.working = true
       this.timer = setInterval(() => {
@@ -678,7 +679,6 @@ export default {
     startOver() {
       this.animation = 'none'
       this.transitionDuration = '0s, 100ms, 100ms'
-      var originalWorking = this.working
       this.working = false
       clearInterval(this.timer);
       this.elapsed = 0
