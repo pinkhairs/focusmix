@@ -13,7 +13,7 @@
         <div style="display: flex; margin: 20px 0; align-center: center; gap: 10px">
           <img v-if="!lightningMode" src="./assets/images/time.svg" alt="" />
           <img v-else src="./assets/images/lightning-mode.svg" alt="Lightning mode" />
-          <v-select :disabled="working" v-model="timeLength" style="width: 50%; border: 0" :options="timeOptions"></v-select>
+          <v-select :disabled="working" v-model="seconds" style="width: 50%; border: 0" :options="timeOptions"></v-select>
         </div>
         <editor @ready="loadEditor = true" ref="editor" :config="config" />
       </main>
@@ -198,7 +198,7 @@
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
-        <h2>Do you want to add another {{timeLength.label}}?</h2>
+        <h2>Do you want to add another {{seconds.label}}?</h2>
         <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" @click="startOver(); modal = false" type="button">Yes</button><button type="button" class="" @click="modal = false">No</button></p>
       </div>
       <div class="modal" v-if="modal === 'about'" style="font-size: 18px">
@@ -336,7 +336,7 @@ export default {
       uid: '',
       saving: false,
       title: '',
-      timeLength: {
+      seconds: {
         label: '1 hour',
         value: 3600,
       },
@@ -443,7 +443,7 @@ export default {
         this.setLocalStorage('title', newValue)
       }
     },
-    timeLength(newValue, previousValue) {
+    seconds(newValue, previousValue) {
       this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
     },
     shuffle(enabled) {
@@ -454,11 +454,11 @@ export default {
     pageReady(newValue) {
       if (newValue) {
         if (this.elapsed) {
-          this.progressBarWidth = 'calc('+this.elapsed/this.timeLength.value*100+'vw - 30px)'
+          this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
         } else {
           this.progressBarWidth = 0;
         }
-        this.transitionDuration = this.timeLength.value-this.elapsed+'s, 100ms, 100ms'
+        this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
         var editorReady = new Promise((resolve, reject) => {
           setTimeout(() => {
             if (this.$refs.editor) {
@@ -484,7 +484,7 @@ export default {
       if (this.shuffle) {
         tasks = this.shuffledTasks
       }
-      var thisTask = tasks.indexOf(tasks.find(element => element.id === this.currentTask.id))
+      var thisTask = tasks.indexOf(tasks.find(element => element.id === this.id))
       var nextTask = this.getNextArrItem(thisTask, tasks)
 
       if (nextTask) {
@@ -496,7 +496,7 @@ export default {
         this.newTaskTitle = 'New task'
         var newCurrentTask = this.addNewTask()
         if (completed) {
-          var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.currentTask.id))
+          var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.id))
 
           var original = this.tasks
           var copy = [].concat(original);
@@ -511,8 +511,8 @@ export default {
       if (completed) {
         var audio = new Audio(this.success);
         audio.play();
-        this.currentTask.elapsed = this.currentTask.length.value
-        this.currentTask.completed = true
+        this.elapsed = this.length.value
+        this.completed = true
       } else {
         var audio = new Audio(this.beep);
         audio.play();
@@ -522,8 +522,8 @@ export default {
       this.progressBarWidth = 'calc(100vw - 30px)'
       this.working = true
       this.timer = setInterval(() => {
-        this.currentTask.elapsed = this.currentTask.elapsed+1/10;
-        if (this.currentTask.elapsed >= this.currentTask.length.value) {
+        this.elapsed = this.elapsed+1/10;
+        if (this.elapsed >= this.seconds.value) {
           if (this.autoplay) {
             this.skip(true)
           } else {
@@ -557,7 +557,7 @@ export default {
     },
     createWelcome() {
       this.title = this.getLocalStorage('title') ? this.getLocalStorage('title') : 'Check it out'
-      this.timeLength = JSON.parse(this.getLocalStorage('timeLength')) ? JSON.parse(this.getLocalStorage('timeLength'))  : {value: 60, label: '1 minute'}
+      this.seconds = JSON.parse(this.getLocalStorage('seconds')) ? JSON.parse(this.getLocalStorage('seconds'))  : {value: 60, label: '1 minute'}
       this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = JSON.parse(this.getLocalStorage('elapsed')) ? JSON.parse(this.getLocalStorage('elapsed')) : 0
       this.completed = JSON.parse(this.getLocalStorage('completed')) ? JSON.parse(this.getLocalStorage('completed')) : false
@@ -565,13 +565,13 @@ export default {
         this.pageReady = true;
       }, 333)
 
-      this.setLocalStorage('timeLength', JSON.stringify(this.timeLength))
+      this.setLocalStorage('seconds', JSON.stringify(this.seconds))
       this.setLocalStorage('notes', JSON.stringify(this.notes))
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
     },
     addNewFolder(folderName) {
-      var folderId = uuidv4();
+      var derId = uuidv4();
       var newFolder = {
         id: folderId,
         name: folderName
@@ -588,6 +588,12 @@ export default {
         this.folders = folders
       }
       return newFolder
+    },
+    pause() {
+      this.working = false
+      this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
+      clearInterval(this.timer)
+      this.invokeSave()
     },
     addNewTask(taskTitle, setCurrent = false) {
       var taskId = uuidv4();
@@ -608,7 +614,7 @@ export default {
         this.tasks = tasks
       }
       if (setCurrent) {
-        this.setLocalStorage('timeLength', this.timeLength)
+        this.setLocalStorage('seconds', this.seconds)
         this.setLocalStorage('completed', this.completed)
         this.setLocalStorage('elapsed', this.elapsed)
         this.setLocalStorage('notes', this.notes)
@@ -669,7 +675,7 @@ export default {
 
       } else {
         console.log('Saving...')
-        this.setLocalStorage('timeLength', JSON.stringify(this.timeLength))
+        this.setLocalStorage('seconds', JSON.stringify(this.seconds))
         this.setLocalStorage('completed', this.completed)
         this.setLocalStorage('elapsed', this.elapsed)
         this.setLocalStorage('title', this.title)
@@ -682,14 +688,14 @@ export default {
       this.$refs.editor._data.state.editor.save()
       .then((data) => {
         db.collection('Users').doc(this.uid).collection('Tasks').doc(this.id).get().then((doc) => {
-          var taskLength = this.timeLength
+          var taskLength = this.seconds
           if (!taskLength) {
             taskLength = { label: '1 hour', value: 3600 }
           }
           db.collection('Users').doc(this.uid).collection('Tasks').doc(this.id).set({
             notes: data,
             title: this.title,
-            timeLength: taskLength,
+            seconds: taskLength,
             elapsed: this.elapsed|0,
             completed: this.complete|false
           }, {merge: true}).then(() => {
