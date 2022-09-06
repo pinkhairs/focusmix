@@ -500,12 +500,16 @@ export default {
   methods: {
     goToNextTask() {
       this.pause()
-      var thisTask = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
-      var nextTask = this.getNextArrItem(thisTask, this.tasks)
+      var tasks = this.tasks
+      if (this.shuffle) {
+        tasks = this.shuffledTasks
+      }
+      var thisTask = tasks.indexOf(tasks.find(element => element.id === this.taskId))
+      var nextTask = this.getNextArrItem(thisTask, tasks)
 
       if (nextTask) {
+        this.changeTask(nextTask)
         if (this.autoplay) {
-          this.changeTask(nextTask)
           this.play()
         }
       } else {
@@ -785,6 +789,7 @@ export default {
       })
       pageReady.then(() => {
         this.pageReady = true
+        window.localStorage.clear()
       }).catch(() => {
         this.pageReady = false
       })
