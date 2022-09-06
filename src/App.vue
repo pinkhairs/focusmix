@@ -117,7 +117,7 @@
       </footer>
       <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: activeColor }"></div>
       <div @click="goToNextColor()" class="progress-bar">
-        <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration, maxWidth: 'calc('+progressBarMaxWidth+' - 30px)'}"></div>
+        <div @click="goToNextColor()" class="progress-bar-color" :style="{width: progressBarWidth, backgroundColor: activeColor, transitionDuration: transitionDuration}"></div>
       </div>
       <div @click="foldersOpen = false; queueOpen = false" class="screen" v-if="foldersOpen || queueOpen"></div>
       <div @click="modal = false; waitingForSignin = false" class="overlay" v-if="modal"></div>
@@ -246,7 +246,6 @@ export default {
       pageReady: false,
       activeColor: '#ffffff',
       progressBarWidth: '1px',
-      progressBarMaxWidth: 'none',
       colors: [
         '#ffe8fa',
         '#fdd2d1',
@@ -468,8 +467,19 @@ export default {
         this.setLocalStorage('title', newValue)
       }
     },
-    seconds(newValue, previousValue) {
+    seconds(newValue) {
       this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
+    },
+    lightningMode(newValue) {
+      if (this.working) {
+        if (newValue) {
+          this.transitionDuration = (this.seconds.value-this.elapsed)/2+'s, 100ms, 100ms'
+          this.progressBarWidth = 'calc(100% - 30px)'
+        } else {
+          this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
+          this.progressBarWidth = 'calc(99.99% - 30px)'
+        }
+      }
     },
     shuffle(enabled) {
       if (enabled) {
@@ -491,7 +501,7 @@ export default {
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
       this.activeColor = this.getLocalStorage('color')
-      this.elapsed = this.getLocalStorage('elapsed')
+      this.elapsed = parseInt(this.getLocalStorage('elapsed'))
       this.config.data = this.notes
     },
     skip(completed = false) {
@@ -586,6 +596,11 @@ export default {
     play() {
       this.completed = false;
       this.progressBarWidth = 'calc(100vw - 30px)'
+      if (this.lightningMode) {
+        this.transitionDuration = (this.seconds.value-this.elapsed)/2+'s, 100ms, 100ms'
+      } else {
+        this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
+      }
       this.working = true
       this.timer = setInterval(() => {
         this.elapsed = this.elapsed+1;
@@ -602,7 +617,6 @@ export default {
           }
           clearInterval(this.timer);
         }
-        this.progressBarMaxWidth = '100%'
       }, 1000)
     },
     getLocalStorage(key) {
@@ -697,7 +711,7 @@ export default {
               this.title = doc.data().title
               this.seconds = doc.data().seconds
               this.completed = Boolean(parseInt(doc.data().completed))
-              this.elapsed = doc.data().elapsed
+              this.elapsed = parseInt(doc.data().elapsed)
               this.notes = doc.data().notes
 
               this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
@@ -744,6 +758,7 @@ export default {
       return arr[nextIndex]
     },
     startOver() {
+      this.lightningMode = false
       this.animation = 'none'
       this.transitionDuration = '0s, 100ms, 100ms'
       this.working = false
