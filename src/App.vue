@@ -408,6 +408,7 @@ export default {
               this.uid = auth.currentUser.uid
               localStorage.removeItem('emailForSignIn');
               window.history.pushState({}, document.title, window.location.pathname);
+              this.pageReady = false;
               setTimeout(() => {
                 this.pageReady = true
               }, 888)
@@ -433,7 +434,7 @@ export default {
     } else {
       auth.onAuthStateChanged((user) => {
         if (user) {
-          this.setLocalStorage('setupComplete', 0)
+          this.setLocalStorage('setupComplete', '0')
           this.uid = user.uid
           this.email = user.email
           this.authenticated = true
@@ -445,11 +446,11 @@ export default {
           this.uid = false
           const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
           this.activeColor = randomColor
-          if (this.getLocalStorage('setupComplete') == 0) {
+          if (Boolean(parseInt(this.getLocalStorage('setupComplete')))) {
+            this.pullLocalData()
+          } else {
             this.createWelcome()
           }
-          this.pullLocalData()
-          this.setLocalStorage('setupComplete', 1)
 
           setTimeout(() => {
             this.pageReady = true
@@ -657,6 +658,8 @@ export default {
       this.setLocalStorage('completed', this.completed);
       this.setLocalStorage('color', this.activeColor);
       this.setLocalStorage('taskId', newTaskId);
+      this.setLocalStorage('setupComplete', '1')
+      this.config.data = this.notes
     },
     addNewFolder(folderName) {
       var folderId = uuidv4();
@@ -716,9 +719,9 @@ export default {
 
               this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
               this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
+              this.config.data = this.notes
             }
           }).then(() => {
-            this.config.data = this.notes
             db.collection('Users').doc(this.uid).get().then((doc) => {
               this.folders = doc.data().folders
             }).then(() => {
@@ -807,9 +810,12 @@ export default {
       }, { merge: true })
     },
     logout() {
-      auth.signOut().then(() => {
-        window.location.href = '/'
-      });
+      this.setLocalStorage('setupComplete', '0')
+      setTimeout(() => {
+        auth.signOut().then(() => {
+          window.location.reload()
+        });
+      }, 1111)
     },
     sendEmailSignIn() {
       auth.sendSignInLinkToEmail(this.email, {
