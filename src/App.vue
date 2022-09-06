@@ -15,7 +15,7 @@
           <img v-else src="./assets/images/lightning-mode.svg" alt="Lightning mode" />
           <v-select :disabled="working" v-model="seconds" style="width: 50%; border: 0" :options="timeOptions"></v-select>
         </div>
-        <editor @ready="loadEditor = true" ref="editor" :config="config" />
+        <editor @ready="loadEditor()" ref="editor" :config="config" />
       </main>
       <footer class="controls">
         <ul class="folders">
@@ -243,7 +243,6 @@ export default {
   data() {
     return {
       timeLeft: 3600,
-      loadEditor: false,
       pageReady: false,
       activeColor: '#ffffff',
       progressBarWidth: '1px',
@@ -264,9 +263,6 @@ export default {
       folders: [],
       justCopied: false,
       config: {
-        data: {
-          blocks: []
-        },
         tools: {
           header: {
             class: Header,
@@ -434,11 +430,11 @@ export default {
         setInterval(() => {
           this.invokeSave()
         }, 3333)
-      }, 7777)
+      }, 9999)
     } else {
       auth.onAuthStateChanged((user) => {
         if (user) {
-          this.setLocalStorage('setupComplete', null)
+          this.setLocalStorage('setupComplete', 0)
           this.uid = user.uid
           this.email = user.email
           this.authenticated = true
@@ -450,12 +446,14 @@ export default {
           this.uid = false
           const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
           this.activeColor = randomColor
-          this.createWelcome()
-          this.setLocalStorage('setupComplete', false)
+          if (this.getLocalStorage('setupComplete') == 0) {
+            this.createWelcome()
+          }
+          this.pullLocalData()
+          this.setLocalStorage('setupComplete', 1)
 
           setTimeout(() => {
             this.pageReady = true
-            this.setLocalStorage('setupComplete', true)
           }, 888)
         }
         setInterval(() => {
@@ -478,23 +476,6 @@ export default {
         this.shuffledTasks = this.shuffleTasks()
       }
     },
-    pageReady(newValue) {
-      if (newValue) {
-        var editorReady = new Promise((resolve, reject) => {
-          if (this.$refs.editor) {
-            resolve(true)
-          }
-          reject(false)
-        })
-        editorReady.then(() => {
-          this.$refs.editor._data.state.editor.render(this.notes)
-        }).catch(() => {
-          setTimeout(() => {
-            this.$refs.editor._data.state.editor.render(this.notes)
-          }, 1111)
-        })
-      }
-    }
   },
   created() {
     window.addEventListener('beforeunload', this.beforeWindowUnload)
@@ -503,6 +484,16 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    pullLocalData() {
+      this.title = this.getLocalStorage('title')
+      this.activeColor = this.getLocalStorage('activeColor')
+      this.seconds = JSON.parse(this.getLocalStorage('seconds'))
+      this.notes = JSON.parse(this.getLocalStorage('notes'))
+      this.completed = this.getLocalStorage('completed')
+      this.activeColor = this.getLocalStorage('color')
+      this.elapsed = this.getLocalStorage('elapsed')
+      this.config.data = this.notes
+    },
     skip(completed = false) {
       if (completed) {
         this.completed = true
@@ -591,20 +582,6 @@ export default {
           }
         ],
       })
-      
-      var editorReady = new Promise((resolve, reject) => {
-        if (this.$refs.editor) {
-          resolve(true)
-        }
-        reject(false)
-      })
-      editorReady.then(() => {
-        this.$refs.editor._data.state.editor.render(this.notes)
-      }).catch(() => {
-        setTimeout(() => {
-          this.$refs.editor._data.state.editor.render(this.notes)
-        }, 2222)
-      })
     },
     play() {
       this.completed = false;
@@ -649,13 +626,21 @@ export default {
     },
     createWelcome() {
       var newTaskId = uuidv4()
-      this.title = this.getLocalStorage('title') ? this.getLocalStorage('title') : 'Check it out'
-      this.seconds = JSON.parse(this.getLocalStorage('seconds')) ? JSON.parse(this.getLocalStorage('seconds'))  : {value: 60, label: '1 minute'}
-      this.notes = JSON.parse(this.getLocalStorage('notes')) ? JSON.parse(this.getLocalStorage('notes')) : { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
-      this.elapsed = this.getLocalStorage('elapsed') ? parseInt(this.getLocalStorage('elapsed')) : 0
-      this.completed = this.getLocalStorage('completed') ? this.getLocalStorage('completed') : false
-      this.taskId = this.getLocalStorage('taskId') ? this.getLocalStorage('taskId') : newTaskId
-      this.activeColor = this.getLocalStorage('color') ? this.getLocalStorage('color') : this.colors[Math.floor(Math.random() * this.colors.length)];
+      this.title = 'Check it out'
+      this.seconds = {value: 60, label: '1 minute'}
+      this.notes = { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
+      this.elapsed = 0
+      this.completed = false
+      this.taskId = newTaskId
+      this.activeColor = this.colors[Math.floor(Math.random() * this.colors.length)];
+      this.setLocalStorage('color', this.activeColor);
+      this.setLocalStorage('taskId', newTaskId);
+      var newTaskId = uuidv4()
+      this.setLocalStorage('title', this.title);
+      this.setLocalStorage('seconds', JSON.stringify(this.seconds));
+      this.setLocalStorage('notes', JSON.stringify(this.notes));
+      this.setLocalStorage('elapsed', this.elapsed);
+      this.setLocalStorage('completed', this.completed);
       this.setLocalStorage('color', this.activeColor);
       this.setLocalStorage('taskId', newTaskId);
     },
@@ -776,26 +761,9 @@ export default {
       this.setLocalStorage('color', this.activeColor)
 
       this.saving = true;
-
-      var editorReady = new Promise((resolve, reject) => {
-        if (this.$refs.editor) {
-          resolve(true)
-        }
-        reject(false)
-      })
-
-      editorReady.then(() => {
-        this.$refs.editor._data.state.editor.save().then((data) => {
-          this.notes = data
-          this.setLocalStorage('notes', JSON.stringify(data))
-        })
-      }).catch(() => {
-        setTimeout(() => {
-          this.$refs.editor._data.state.editor.save().then((data) => {
-            this.notes = data
-            this.setLocalStorage('notes', JSON.stringify(data))
-          })
-        }, 2222)
+      this.$refs.editor._data.state.editor.save().then((data) => {
+        this.notes = data
+        this.setLocalStorage('notes', JSON.stringify(data))
       })
       if (!this.uid) return;
 
