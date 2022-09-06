@@ -489,7 +489,7 @@ export default {
       this.activeColor = this.getLocalStorage('activeColor')
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.notes = JSON.parse(this.getLocalStorage('notes'))
-      this.completed = Boolean(this.getLocalStorage('completed'))
+      this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
       this.activeColor = this.getLocalStorage('color')
       this.elapsed = this.getLocalStorage('elapsed')
       this.config.data = this.notes
@@ -549,7 +549,7 @@ export default {
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.elapsed = parseInt(this.getLocalStorage('elapsed'))
-      this.completed = this.getLocalStorage('completed')
+      this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
       this.taskId = this.getLocalStorage('taskId')
       this.activeColor = this.getLocalStorage('color')
       this.currentFolder = onlyFolder
@@ -696,7 +696,7 @@ export default {
             if (doc.exists) {
               this.title = doc.data().title
               this.seconds = doc.data().seconds
-              this.completed = doc.data().completed
+              this.completed = Boolean(parseInt(doc.data().completed))
               this.elapsed = doc.data().elapsed
               this.notes = doc.data().notes
 
