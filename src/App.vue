@@ -445,7 +445,7 @@ export default {
           if (Boolean(parseInt(this.getLocalStorage('setupComplete')))) {
             this.pullLocalData()
           } else {
-            localStorage.clear()
+            window.localStorage.clear()
             this.createWelcome()
           }
 
@@ -499,12 +499,13 @@ export default {
   },
   methods: {
     goToNextTask() {
+      this.pause()
       var thisTask = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
       var nextTask = this.getNextArrItem(thisTask, this.tasks)
 
       if (nextTask) {
-        this.changeTask(nextTask)
         if (this.autoplay) {
+          this.changeTask(nextTask)
           this.play()
         }
       } else {
@@ -532,22 +533,16 @@ export default {
     },
     changeTask(task) {
       this.pause()
-      db.collection('Users').doc(this.uid).collection('Tasks').doc(task.id).get().then((doc) => { 
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(task.id).get().then((doc) => {
         this.taskId = task.id
         this.title = doc.data().title
         this.seconds = doc.data().seconds
         this.elapsed = doc.data().elapsed
+        this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
+        this.transitionDuration = '0s, 100ms, 100ms'
         this.completed = this.completed
         this.notes = this.notes
         this.$refs.editor._data.state.editor.render(doc.data().notes)
-        if (this.autoplay) {
-          this.progressBarWidth = 'calc(100% - 30px)'
-          this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
-        } else {
-          this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
-          this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
-        }
-
         db.collection('Users').doc(this.uid).get((doc) => {
           db.collection('Users').doc(this.uid).set({
             workingTask: task.id
@@ -594,10 +589,10 @@ export default {
       this.taskId = uuidv4()
       this.activeColor = this.getLocalStorage('color')
       this.currentFolder = onlyFolder
+      window.localStorage.clear()
 
       db.collection('Users').doc(uid).set({
         options: {
-          autoplay: this.autoplay,
           color: this.activeColor,
         },
         workingFolder: this.currentFolder,
@@ -624,7 +619,6 @@ export default {
       })
 
       setTimeout(() => {
-        localStorage.clear()
         window.location.reload()
       }, 1111)
     },
@@ -711,6 +705,7 @@ export default {
     pause() {
       this.working = false
       this.transitionDuration = '0s, 100ms, 100ms'
+      console.log(this.elapsed)
       this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
       clearInterval(this.timer)
       this.invokeSave()
@@ -859,7 +854,7 @@ export default {
       }, { merge: true })
     },
     logout() {
-      localStorage.clear()
+      window.localStorage.clear()
       setTimeout(() => {
         auth.signOut().then(() => {
           window.location.reload()
