@@ -460,6 +460,11 @@ export default {
     }
   },
   watch: {
+    seconds(newValue) {
+      if (this.autoplay) {
+        this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
+      }
+    },
     title(newValue, previousValue){
       if (!this.authenticated) return;
       if (newValue !== previousValue) {
