@@ -408,10 +408,6 @@ export default {
               this.uid = auth.currentUser.uid
               localStorage.removeItem('emailForSignIn');
               window.history.pushState({}, document.title, window.location.pathname);
-              this.pageReady = false;
-              setTimeout(() => {
-                this.pageReady = true
-              }, 888)
               setTimeout(() => {
                 if (methods.length === 0) {
                   this.convertAccount()
@@ -449,6 +445,7 @@ export default {
           if (Boolean(parseInt(this.getLocalStorage('setupComplete')))) {
             this.pullLocalData()
           } else {
+            localStorage.clear()
             this.createWelcome()
           }
 
