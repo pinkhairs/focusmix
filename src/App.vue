@@ -349,7 +349,7 @@ export default {
       welcomeBlocks: [
         {
           data: {
-            text: 'Welcome, Focusmix is a tool for getting stuff done.'
+            text: 'Welcome. Focusmix is a tool for getting stuff done.'
           },
           id: "moTtRFW4VL",
           type: "paragraph"
