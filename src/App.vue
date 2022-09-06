@@ -410,7 +410,7 @@ export default {
               window.history.pushState({}, document.title, window.location.pathname);
               setTimeout(() => {
                 if (methods.length === 0) {
-                  this.convertAccount()
+                  this.convertAccount(this.uid)
                 } else {
                   this.pullData()
                 }
@@ -551,18 +551,18 @@ export default {
         audio.play();
       }
     },
-    convertAccount() {
+    convertAccount(uid) {
       var onlyFolder = { id: uuidv4(), name: 'Folder' }
       this.title = this.getLocalStorage('title')
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.elapsed = parseInt(this.getLocalStorage('elapsed'))
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
-      this.taskId = this.getLocalStorage('taskId')
+      this.taskId = uuidv4()
       this.activeColor = this.getLocalStorage('color')
       this.currentFolder = onlyFolder
 
-      db.collection('Users').doc(this.uid).set({
+      db.collection('Users').doc(uid).set({
         options: {
           shuffle: this.shuffle,
           autoplay: this.autoplay,
@@ -573,7 +573,7 @@ export default {
         folders: [onlyFolder]
       })
 
-      db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
+      db.collection('Users').doc(uid).collection('Tasks').doc(this.taskId).set({
         notes: this.notes,
         title: this.title,
         seconds: this.seconds,
@@ -581,7 +581,7 @@ export default {
         completed: this.completed
       })
 
-      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+      db.collection('Users').doc(uid).collection('Folders').doc(this.currentFolder.id).set({
         tasks: [
           {
             id: this.taskId,
@@ -590,6 +590,10 @@ export default {
           }
         ],
       })
+
+      setTimeout(() => {
+        window.location.reload()
+      }, 1111)
     },
     play() {
       this.completed = false;
@@ -637,24 +641,20 @@ export default {
       this.invokeSave()
     },
     createWelcome() {
-      var newTaskId = uuidv4()
       this.title = 'Check it out'
       this.seconds = {value: 60, label: '1 minute'}
       this.notes = { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = 0
       this.completed = false
-      this.taskId = newTaskId
+      this.taskId = uuidv4()
       this.activeColor = this.colors[Math.floor(Math.random() * this.colors.length)];
       this.setLocalStorage('color', this.activeColor);
-      this.setLocalStorage('taskId', newTaskId);
-      var newTaskId = uuidv4()
+      this.setLocalStorage('taskId', this.taskId);
       this.setLocalStorage('title', this.title);
       this.setLocalStorage('seconds', JSON.stringify(this.seconds));
       this.setLocalStorage('notes', JSON.stringify(this.notes));
       this.setLocalStorage('elapsed', this.elapsed);
       this.setLocalStorage('completed', this.completed);
-      this.setLocalStorage('color', this.activeColor);
-      this.setLocalStorage('taskId', newTaskId);
       this.setLocalStorage('setupComplete', '1')
       this.config.data = this.notes
     },
@@ -807,7 +807,7 @@ export default {
       }, { merge: true })
     },
     logout() {
-      this.setLocalStorage('setupComplete', '0')
+      localStorage.clear()
       setTimeout(() => {
         auth.signOut().then(() => {
           window.location.reload()
