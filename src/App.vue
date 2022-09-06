@@ -25,14 +25,14 @@
               <div>
                 <div v-if="shuffle">
                   <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
-                    <span @click="changeTask(shuffleTask.id)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
+                    <span @click="changeTask(shuffleTask)" :style="shuffleTask.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{shuffleTask.title}}</span>
                     <button v-if="tasks.length > 1 && id !== shuffleTask.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = shuffleTask" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
                   </div>
                 </div>
                 <draggable v-else :list="tasks" group="tasks-todo">
                   <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in tasks" :key="task.id">
-                    <span @click="changeTask(task.id)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
-                    <button v-if="tasks.length > 1 && id !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                    <span @click="changeTask(task)" :style="task.completed ? {fontSize: '15px', padding: '5px 3px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 3px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
                   </div>
                 </draggable>
               </div>
@@ -91,7 +91,7 @@
               <button v-else type="button"  @click="play()"><img src="./assets/images/play.svg" alt="Start" aria-label="Start task" /></button>
             </div>
             <div class="muted tooltip">
-              <button @click="authenticated ? skip(false) : modal = 'account'" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
+              <button @click="authenticated ? goToNextTask() : modal = 'account'" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
               <span class="tooltiptext">Next task</span>
             </div>
           </div>
@@ -185,9 +185,9 @@
       </div>
       <div class="modal" v-if="modal === 'deleteTask'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
-        <h2>Delete: {selectedTask.name}}?</h2>
+        <h2>Delete {{selectedTask.title}}?</h2>
         <p>This is irreversible! Notes will be gone.</p>
-        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask.id); modal = false">Delete</button></p>
+        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask); modal = false">Delete</button></p>
       </div>
       <div class="modal" v-if="modal === 'renameFolder'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
@@ -242,6 +242,7 @@ export default {
   components: { draggable, vSelect },
   data() {
     return {
+      selectedTask: null,
       timeLeft: 3600,
       pageReady: false,
       activeColor: '#ffffff',
@@ -430,7 +431,6 @@ export default {
     } else {
       auth.onAuthStateChanged((user) => {
         if (user) {
-          this.setLocalStorage('setupComplete', '0')
           this.uid = user.uid
           this.email = user.email
           this.authenticated = true
@@ -461,8 +461,14 @@ export default {
   },
   watch: {
     title(newValue, previousValue){
+      if (!this.authenticated) return;
       if (newValue !== previousValue) {
         this.setLocalStorage('title', newValue)
+        var taskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
+        var original = this.tasks
+        var copy = [].concat(original);
+        copy[taskIndex].title = newValue
+        this.tasks = copy
       }
     },
     seconds(newValue) {
@@ -492,6 +498,63 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    goToNextTask() {
+      var thisTask = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
+      var nextTask = this.getNextArrItem(thisTask, this.tasks)
+
+      if (nextTask) {
+        this.changeTask(nextTask)
+        if (this.autoplay) {
+          this.play()
+        }
+      } else {
+        this.addNewTask('New task', true)
+      }
+    },
+    deleteTask(task) {
+      this.saving = true;
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(task.id).delete().then(() => {
+        var selectedTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === task.id))
+        var original = this.tasks
+        var newTasks = [].concat(original);
+        newTasks.splice(selectedTaskIndex, 1)
+        this.tasks = newTasks
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).delete().then(() => {
+          db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).set({
+            tasks: this.tasks
+          }, { merge: true }).then(() => {
+            this.saving = false;
+          })
+        });
+      }).catch((err) => {
+        console.log(err)
+      });
+    },
+    changeTask(task) {
+      this.pause()
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(task.id).get().then((doc) => { 
+        this.taskId = task.id
+        this.title = doc.data().title
+        this.seconds = doc.data().seconds
+        this.elapsed = doc.data().elapsed
+        this.completed = this.completed
+        this.notes = this.notes
+        this.$refs.editor._data.state.editor.render(doc.data().notes)
+        if (this.autoplay) {
+          this.progressBarWidth = 'calc(100% - 30px)'
+          this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
+        } else {
+          this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
+          this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
+        }
+
+        db.collection('Users').doc(this.uid).get((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            workingTask: task.id
+            }, { merge: true })
+        })
+      })
+    },
     pullLocalData() {
       this.title = this.getLocalStorage('title')
       this.activeColor = this.getLocalStorage('activeColor')
@@ -520,36 +583,6 @@ export default {
         this.pause()
         audio.play();
       }
-      return
-
-      if (nextTask) {
-        if (this.autoplay) {
-          this.play()
-        }
-      } else {
-        this.newTaskTitle = 'New task'
-        if (completed) {
-          var currentTaskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.id))
-
-          var original = this.tasks
-          var copy = [].concat(original);
-          copy[currentTaskIndex].completed = true;
-          this.tasks = copy
-        }
-        this.changeTask(newCurrentTask.id)
-        if (this.autoplay) {
-          this.play()
-        }
-      }
-      if (completed) {
-        var audio = new Audio(this.success);
-        audio.play();
-        this.elapsed = this.length.value
-        this.completed = true
-      } else {
-        var audio = new Audio(this.beep);
-        audio.play();
-      }
     },
     convertAccount(uid) {
       var onlyFolder = { id: uuidv4(), name: 'Folder' }
@@ -564,7 +597,6 @@ export default {
 
       db.collection('Users').doc(uid).set({
         options: {
-          shuffle: this.shuffle,
           autoplay: this.autoplay,
           color: this.activeColor,
         },
@@ -592,6 +624,7 @@ export default {
       })
 
       setTimeout(() => {
+        localStorage.clear()
         window.location.reload()
       }, 1111)
     },
@@ -612,6 +645,7 @@ export default {
         if (this.elapsed >= this.seconds.value) {
           if (this.autoplay) {
             this.skip(true)
+            this.goToNextTask()
           } else {
             this.modal = 'moreTime'
             var audio = new Audio(this.beep);
@@ -625,6 +659,7 @@ export default {
       return localStorage.getItem(key)
     },
     setLocalStorage(key, value) {
+      if (this.uid) return;
       return localStorage.setItem(key, value);
     },
     goToNextColor() {
@@ -680,26 +715,44 @@ export default {
       clearInterval(this.timer)
       this.invokeSave()
     },
+
     addNewTask(taskTitle, setCurrent = false) {
       var taskId = uuidv4();
       var newTask = {
         id: taskId,
         title: taskTitle,
         completed: false,
+        elapsed: 0
       }
+      this.tasks.push(newTask)
+      
       if (setCurrent) {
         this.setLocalStorage('taskId', taskId)
-        this.setLocalStorage('seconds', this.seconds)
-        this.setLocalStorage('completed', this.completed)
-        this.setLocalStorage('elapsed', this.elapsed)
-        this.setLocalStorage('notes', this.notes)
+        this.setLocalStorage('seconds', {value: 3600, label: '1 hour'})
+        this.setLocalStorage('completed', false)
+        this.setLocalStorage('elapsed', 0)
+        this.setLocalStorage('notes', { blocks: [{data: {text: 'Write here.'}, id: "moTtRFW4VL", type: "paragraph"}], time: Date.now(), version: '2.18.0' })
+
+        db.collection('Users').doc(this.uid).get((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            workingTask: taskId
+          }, { merge: true })
+        })
+        this.changeTask(newTask)
       }
+      db.collection('Users').doc(this.uid).collection('Tasks').doc(taskId).set({
+        title: taskTitle,
+        seconds: { value: 3600, label: '1 hour' },
+        elapsed: 0,
+        completed: false,
+        notes: { blocks: [{data: {text: 'Write here.'}, id: "moTtRFW4VL", type: "paragraph"}], time: Date.now(), version: '2.18.0' }
+      })
+      this.newTaskTitle = ''
       return newTask
     },
     pullData() {
       let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.shuffle = doc.data().options.shuffle
           this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
           this.activeColor = doc.data().options.color
@@ -711,7 +764,7 @@ export default {
               this.title = doc.data().title
               this.seconds = doc.data().seconds
               this.completed = Boolean(parseInt(doc.data().completed))
-              this.elapsed = parseInt(doc.data().elapsed)
+              this.elapsed = doc.data().elapsed
               this.notes = doc.data().notes
 
               this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
@@ -785,7 +838,6 @@ export default {
 
       db.collection('Users').doc(this.uid).set({
         options: {
-          shuffle: this.shuffle,
           autoplay: this.autoplay,
           color: this.activeColor,
         },
