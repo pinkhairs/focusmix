@@ -518,7 +518,6 @@ export default {
       } else {
         this.addNewTask('New task', true)
       }
-      this.startOver()
     },
     deleteTask(task) {
       this.saving = true;
@@ -648,6 +647,7 @@ export default {
           if (this.autoplay) {
             this.skip(true)
             this.goToNextTask()
+            this.play()
           } else {
             this.modal = 'moreTime'
             var audio = new Audio(this.beep);
