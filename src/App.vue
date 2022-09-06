@@ -489,7 +489,7 @@ export default {
       this.activeColor = this.getLocalStorage('activeColor')
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.notes = JSON.parse(this.getLocalStorage('notes'))
-      this.completed = this.getLocalStorage('completed')
+      this.completed = Boolean(this.getLocalStorage('completed'))
       this.activeColor = this.getLocalStorage('color')
       this.elapsed = this.getLocalStorage('elapsed')
       this.config.data = this.notes
@@ -704,6 +704,7 @@ export default {
               this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
             }
           }).then(() => {
+            this.config.data = this.notes
             db.collection('Users').doc(this.uid).get().then((doc) => {
               this.folders = doc.data().folders
             }).then(() => {
