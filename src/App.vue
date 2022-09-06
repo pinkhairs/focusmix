@@ -344,7 +344,7 @@ export default {
       completed: false,
       currentFolder: {id: ''},
       renameFolderName: '',
-      transitionDuration: 3600,
+      transitionDuration: '0s, 100ms, 100ms',
       beep: require('./assets/media/beep.mp3'),
       success: require('./assets/media/success.mp3'),
       welcomeBlocks: [
@@ -472,7 +472,7 @@ export default {
       }
     },
     seconds(newValue) {
-      this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
+      this.transitionDuration = '100ms, 100ms, 100ms'
     },
     lightningMode(newValue) {
       if (this.working) {
@@ -484,6 +484,9 @@ export default {
           this.progressBarWidth = 'calc(99.99% - 30px)'
         }
       }
+    },
+    working(newValue) {
+      if (!newValue) this.transitionDuration = '0ms, 100ms, 100ms'
     },
     shuffle(enabled) {
       if (enabled) {
@@ -515,6 +518,7 @@ export default {
       } else {
         this.addNewTask('New task', true)
       }
+      this.startOver()
     },
     deleteTask(task) {
       this.saving = true;
@@ -542,10 +546,10 @@ export default {
         this.title = doc.data().title
         this.seconds = doc.data().seconds
         this.elapsed = doc.data().elapsed
+        this.transitionDuration = '0.001s, 100ms, 100ms'
         this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
-        this.transitionDuration = '0s, 100ms, 100ms'
-        this.completed = this.completed
-        this.notes = this.notes
+        this.completed = doc.data().completed
+        this.notes = doc.data().notes
         this.$refs.editor._data.state.editor.render(doc.data().notes)
         db.collection('Users').doc(this.uid).get((doc) => {
           db.collection('Users').doc(this.uid).set({
@@ -813,13 +817,10 @@ export default {
     startOver() {
       this.lightningMode = false
       this.animation = 'none'
-      this.transitionDuration = '0s, 100ms, 100ms'
+      this.transitionDuration = '0.0001s, 100ms, 100ms'
       this.working = false
       clearInterval(this.timer);
       this.elapsed = 0
-      setTimeout(() => {
-        this.transitionDuration = this.seconds.value+'s, 100ms, 100ms'
-      }, 333)
       this.progressBarWidth = '1px'
     },
     invokeSave() {
