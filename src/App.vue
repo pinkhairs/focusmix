@@ -463,6 +463,8 @@ export default {
     seconds(newValue) {
       if (this.autoplay) {
         this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
+      } else {
+        this.transitionDuration = '100ms, 100ms, 100ms'
       }
     },
     title(newValue, previousValue){
