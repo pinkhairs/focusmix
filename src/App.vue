@@ -1117,7 +1117,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   overflow: scroll;
 }
 .folders-list {
-  bottom: 60px;
+  bottom: 0px;
   left: 10px;
 }
 .folders-list ul,  .queue-list ul {
@@ -1135,7 +1135,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 @media (min-width: 0px) and (max-width: 1023px) {
   .queue-list {
     left: 0;
-    bottom: 120px;
+    bottom: 60px;
   }
 }
 @media (min-width: 1024px) {
@@ -1161,7 +1161,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 @media (min-width: 0px) and (max-width: 1023px) {
   .add-new-task {
-    bottom: 120px;
+    bottom: 60px;
     width: 290px;
   }
 }
