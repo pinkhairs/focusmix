@@ -572,6 +572,7 @@ export default {
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
       this.activeColor = this.getLocalStorage('color')
       this.elapsed = parseInt(this.getLocalStorage('elapsed'))
+      this.taskId = this.getLocalStorage('taskId')
       this.config.data = this.notes
     },
     skip(completed = false) {
