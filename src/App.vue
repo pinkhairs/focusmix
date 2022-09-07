@@ -4,7 +4,7 @@
       <nav class="site-nav">
         <ul>
           <li v-if="authenticated"><button type="button" class="muted" @click="invokeSave"><img src="./assets/images/cloud.svg" :class="saving ? 'muted' : ''" alt="Autosave" aria-label="Autosaving" /></button></li>
-          <li><button type="button" :class="premium ? '' : 'muted'" @click="modal = 'premium'"><img src="./assets/images/star.svg" alt="Upgrade" aria-label="Go Premium" /></button></li>
+          <li v-if="authenticated"><button type="button" :class="premium ? '' : 'muted'" @click="modal = 'premium'"><img src="./assets/images/star.svg" alt="Upgrade" aria-label="Go Premium" /></button></li>
           <li><button type="button" :class="authenticated ? '' : 'muted'" @click="modal = 'account'"><img src="./assets/images/account.svg" alt="Account" aria-label="Your Account" /></button></li>
           <li><button class="muted" type="button" @click="modal = 'about'" target="_blank"><img src="./assets/images/dots.svg" alt="More" aria-label="About this site"></button></li>
         </ul>
@@ -22,7 +22,7 @@
         <ul class="folders">
           <li>
             <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button" @click="queueOpen = !queueOpen"><img src="./assets/images/queue.svg" alt="Queue" /></button>
-            <div class="queue-list" v-if="queueOpen">
+            <div :class="premium ? 'queue-list premium' : 'queue-list'" v-if="queueOpen">
               <div>
                 <div v-if="shuffle">
                   <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="shuffleTask in shuffledTasks" :key="'shuffle-'+shuffleTask.id">
@@ -539,6 +539,26 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    changeFolder(folder) {
+      this.currentFolder = folder
+      db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
+        if (doc.data().tasks) {
+          this.tasks = doc.data().tasks
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
+            this.currentTask = doc.data()
+            this.$refs.editor._data.state.editor.render(doc.data().notes)
+          })
+        } else {
+          var newTaskId = uuidv4();
+          var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [{data: {text: 'Write here.'}, id: "moTtRFW4VL", type: "paragraph"}], version: "2.12.4"}};
+          this.tasks = [newTask]
+
+          db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
+              db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
+          })
+        }
+      })
+    },
     upgrade(type = 'monthly') {
       this.loadingStripe = true
       var prices = {
@@ -631,6 +651,7 @@ export default {
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
       this.activeColor = this.getLocalStorage('color')
       this.elapsed = parseInt(this.getLocalStorage('elapsed'))
+      this.taskId = this.getLocalStorage('taskId')
       this.config.data = this.notes
     },
     skip(completed = false) {
@@ -659,7 +680,7 @@ export default {
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.elapsed = parseInt(this.getLocalStorage('elapsed'))
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
-      this.taskId = uuidv4()
+      this.taskId = this.getLocalStorage('taskId')
       this.activeColor = this.getLocalStorage('color')
       this.currentFolder = onlyFolder
       window.localStorage.clear()
@@ -767,13 +788,17 @@ export default {
         id: folderId,
         name: folderName
       }
-      var folders = []
-      if (this.getLocalStorage('folders')) {
-        folders = JSON.parse(this.getLocalStorage('folders'))
-      }
-      folders.push(newFolder)
-      this.setLocalStorage('folders', JSON.stringify(folders))
-      this.folders = folders
+      var original = this.folders
+      var copy = [].concat(original);
+
+      copy.push(newFolder)
+      this.folders = copy
+
+      db.collection('Users').doc(this.uid).collection('Folders').doc(folderId).set({
+        name: folderName,
+        tasks: []
+      })
+      this.newFolderTitle = ''
       return newFolder
     },
     pause() {
@@ -1207,14 +1232,24 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 @media (min-width: 0px) and (max-width: 1023px) {
   .queue-list {
-    left: 0;
+    left: 10px;
     bottom: 120px;
+  }
+  .queue-list.premium {
+    bottom: 120px;
+    left: auto;
+    right: 10px;
   }
 }
 @media (min-width: 1024px) {
   .queue-list {
     bottom: 60px;
-    left: 0;
+    left: 10px;
+  }
+  .queue-list.premium {
+    bottom: 60px;
+    left: auto;
+    right: 10px;
   }
 }
 .change-folder {
