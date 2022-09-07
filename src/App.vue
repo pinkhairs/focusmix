@@ -835,7 +835,6 @@ export default {
       this.setLocalStorage('seconds', JSON.stringify(this.seconds))
       this.setLocalStorage('completed', this.completed)
       this.setLocalStorage('elapsed', this.elapsed)
-      this.setLocalStorage('taskId', this.taskId)
       this.setLocalStorage('color', this.activeColor)
 
       this.saving = true;
