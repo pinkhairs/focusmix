@@ -955,8 +955,10 @@ body {
 }
 @media (min-width: 0px) and (max-width: 1023px) {
   .controls {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
   }
 }
 @media (min-width: 1024px) {
@@ -1016,15 +1018,8 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 .action {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-@media (min-width: 0px) and (max-width: 1023px) {
-  .action {
-    grid-row-start: 1;
-    grid-column-start: 1;
-    grid-row-end: 1;
-    grid-column-end: 3;
-  }
+  justify-content: space-around;
+  gap: 20px;
 }
 .browse {
   display: flex;
@@ -1033,18 +1028,12 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   gap: 20px;
 }
 @media (min-width: 0px) and (max-width: 1023px) {
-  .browse {
-    grid-row-start: 1;
-    grid-column-start: 2;
-    grid-row-end: 1;
-    grid-column-end: 2;
-  }
-}
-@media (min-width: 0px) and (max-width: 1023px) {
   .mark-complete {
-    margin-top: -10px;
     position: relative;
     left: 10px;
+  }
+  .action {
+    margin-left: 40px;
   }
 }
 @media (min-width: 1024px) {
