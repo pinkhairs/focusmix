@@ -44,28 +44,22 @@
                 </form>
               </div>
             </div>
-            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><span class="folder-color"></span> {{currentFolder.name}}</button>
+            <div style="display: flex; align-items: center; justify-content: space-between"><button v-if="authenticated && premium" style="display: inline-flex; text-align:left; font-size: 16px; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><span :style="{backgroundColor: currentFolder.color}" class="folder-color"></span> <span :style="currentFolder.name.length > 15 ? {fontSize: '14px'} : {}">{{currentFolder.name}}</span></button></div>
             <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Queue" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
-                <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
-                  <button style="text-align: left" class="change-folder" type="button" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' notebook'">{{folder.name}}</button>
-                  <div style="display: flex; gap: 5px;">
-                    <button class="muted" type="button" :aria-label="'Rename '+folder.name" @click="modal = 'renameFolder'; selectedFolder = folder">
-                      <img src="./assets/images/pencil.svg" />
-                    </button>
-                    <button v-if="justCopied === folder.id" class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="changeFolder(folder)">
-                      <img src="./assets/images/arrow.svg" />
-                    </button>
-                    <button v-else class="muted" @blur="justCopied = false" type="button" :aria-label="'Copy '+folder.name" @click="copyFolder(folder)">
-                      <img src="./assets/images/copy.svg" alt="Copy" />
-                    </button>
-                    <button v-if="folders.length > 1 && currentFolder.id !== folder.id" class="muted" type="button" :aria-label="'Delete '+folder.name" @click="modal = 'deleteFolder'; selectedFolder = folder"><img src="./assets/images/trash.svg" alt="Trash" /></button>
+                <div v-for="folder in folders" :key="folder.id">
+                  <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: center; text-align: left; display: flex; align-items: center; gap: 4px; justify-content: space-between" class="change-folder" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' notebook'"><div><span :style="{backgroundColor: folder.color}" class="folder-color"></span> {{folder.name}}</div>
+                    <div style="display: flex; gap: 5px; width: 20px">
+                      <button class="muted" type="button" :aria-label="'Manage '+folder.name" @click="modal = 'manageFolder'; selectedFolder = folder">
+                        <img src="./assets/images/pencil.svg" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </draggable>
               <form @submit.prevent="addNewFolder(newFolderName)" class="add-new-folder">
-                <input style="width: 100%" v-model="newFolderName" type="text" placeholder="New folder name" />
+                <input style="width: 100%" v-model="newFolderName" type="text" placeholder="New notebook name" />
                 <button class="invisible" ref="addNewFolderButton" :class="newFolderName.trim() === '' ? 'muted' : ''" :disabled="newFolderName.trim() === ''" type="submit"  aria-label="Create new notebook"><img src="./assets/images/plus.svg" alt="Add" /></button>
               </form>
             </div>
@@ -199,14 +193,21 @@
         <p>This is irreversible! Notes will be gone.</p>
         <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">Never mind</button><button type="button" class="invisible" @click="deleteTask(selectedTask); modal = false">Delete</button></p>
       </div>
-      <div class="modal" v-if="modal === 'renameFolder'">
+      <div class="modal" v-if="modal === 'manageFolder'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
-        <h2>Rename <code>{{selectedFolder.name}}</code></h2>
-        <form @submit.prevent="renameFolder(selectedFolder); modal = false">
-          <p><label>New name<br>
-            <input v-model="renameFolderName" style="font: inherit" type="text" class="show" required />
+        <h2>Manage {{selectedFolder.name}}</h2>
+        <form @submit.prevent="updateFolder(selectedFolder); modal = false">
+          <p><label>Name<br>
+            <input v-model="renameFolderName" style="font: inherit; width: 100%;" type="text" class="show" required />
           </label></p>
-          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Ready</button><button type="button" class="" @click="modal = false">Never mind</button></p>
+          <p><label>Color<br>
+            <div style="display: flex; align-items: center;">
+              <button @click="newFolderColor = color" type="button" v-for="color in folderColors" :key="color">
+                <span :style="newFolderColor === color ? {backgroundColor: color, border:' #444 2px solid', width: '20px', height: '20px' } : { backgroundColor: color, opacity: '.5', width: '20px', height: '20px' }" class="folder-color"></span>
+              </button>
+            </div>
+          </label></p>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
         </form>
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
@@ -260,6 +261,17 @@ export default {
   components: { draggable, vSelect },
   data() {
     return {
+      folderColors: [
+        '#444',
+        '#9f9f9f',
+        '#a980ff',
+        '#67d0ff',
+        '#78ac4d',
+        '#ffa000',
+        '#ff252f',
+        '#ff65d2'
+      ],
+      newFolderColor: '',
       loadingStripe: false,
       selectedTask: null,
       timeLeft: 3600,
@@ -361,7 +373,7 @@ export default {
       notes: {},
       elapsed: 0,
       completed: false,
-      currentFolder: {id: ''},
+      currentFolder: {id: '', color: '#000'},
       renameFolderName: '',
       transitionDuration: '0s, 100ms, 100ms',
       beep: require('./assets/media/beep.mp3'),
@@ -491,6 +503,10 @@ export default {
     }
   },
   watch: {
+    selectedFolder(newValue) {
+      this.newFolderColor = newValue.color
+      this.currentFolder.color = newValue.color
+    },
     seconds(newValue) {
       if (this.autoplay) {
         this.transitionDuration = newValue.value-this.elapsed+'s, 100ms, 100ms'
@@ -541,6 +557,40 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    updateFolder(folder) {
+      db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).get().then(() => {
+        var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
+        var original = this.folders
+        var newFolders = [].concat(original);
+
+        newFolders[selectedFolderIndex] = {
+          name: this.renameFolderName,
+          id: folder.id,
+          color: this.newFolderColor
+        }
+
+        if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
+          this.currentFolder.name = this.renameFolderName
+          this.currentFolder.color = this.newFolderColor
+        }
+
+        db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
+        name: this.renameFolderName
+        }, { merge: true }).then(() => {
+          this.renameFolderName = ''
+          this.newFolderColor = ''
+        })
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            folders: newFolders,
+            workingFolder: this.currentFolder
+          }, { merge: true }).then(() => {
+            this.saving = false;
+          })
+        })
+        this.folders = newFolders
+      });
+    },
     changeFolder(folder) {
       this.currentFolder = folder
       db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then((doc) => { 
@@ -575,19 +625,16 @@ export default {
       })
     },
     manageSubscription() {
-      // after initializing Firebase
       const functions = getFunctions();
-
       const functionRef = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink');
-
       functionRef({
-          returnUrl: `${window.location.origin}`,
-          locale: "auto",
-        })
-        .then((result) => {
-          const data = result.data;
-          window.location.href = data.url;
-        });
+        returnUrl: `${window.location.origin}`,
+        locale: "auto",
+      })
+      .then((result) => {
+        const data = result.data;
+        window.location.href = data.url;
+      });
     },
     goToNextTask() {
       this.pause()
@@ -675,7 +722,7 @@ export default {
       }
     },
     convertAccount(uid) {
-      var onlyFolder = { id: uuidv4(), name: 'Folder' }
+      var onlyFolder = { id: uuidv4(), name: 'Notebook', color: '#444' }
       this.title = this.getLocalStorage('title')
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
@@ -689,6 +736,7 @@ export default {
       db.collection('Users').doc(uid).set({
         options: {
           color: this.activeColor,
+          premium: false,
         },
         workingFolder: this.currentFolder,
         workingTask: this.taskId,
@@ -788,7 +836,8 @@ export default {
       var folderId = uuidv4();
       var newFolder = {
         id: folderId,
-        name: folderName
+        name: folderName,
+        color: '#444'
       }
       var original = this.folders
       var copy = [].concat(original);
@@ -798,6 +847,7 @@ export default {
 
       db.collection('Users').doc(this.uid).collection('Folders').doc(folderId).set({
         name: folderName,
+        color: '#444',
         tasks: []
       })
       this.newFolderTitle = ''
@@ -924,11 +974,13 @@ export default {
         this.setLocalStorage('color', this.activeColor)
 
         this.saving = true;
-        this.$refs.editor._data.state.editor.save().then((data) => {
-          this.notes = data
-          this.setLocalStorage('notes', JSON.stringify(data))
-        })
-        return;
+        if (this.$refs.editor._data) {
+          this.$refs.editor._data.state.editor.save().then((data) => {
+            this.notes = data
+            this.setLocalStorage('notes', JSON.stringify(data))
+          })
+          return;
+        }
       }
 
       db.collection('Users').doc(this.uid).set({
@@ -939,10 +991,13 @@ export default {
         workingTask: this.taskId,
         folders: this.folders
       }, { merge: true })
-      
-      this.$refs.editor._data.state.editor.save().then((data) => {
-        this.notes = data
-      })
+
+      if (this.$refs.editor) {
+        this.$refs.editor._data.state.editor.save().then((data) => {
+          this.notes = data
+        })
+        return;
+      }
 
       db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
         notes: this.notes,
@@ -1060,7 +1115,7 @@ body {
 button {
   cursor: pointer;
 }
-input[type="text"]:not(.show), select, textarea, button[type="button"], button[type="submit"].invisible {
+input[type="text"]:not(.show), select, textarea, button[type="button"], button[type="submit"].invisible,select {
   font-family: inherit;
   background: 0;
   padding: 0;
@@ -1068,12 +1123,12 @@ input[type="text"]:not(.show), select, textarea, button[type="button"], button[t
   border: 0;
   display: block;
   border-radius: 4px;
-  color: #000;
+  color: #444;
 }
 button[type="button"] {
   font-size: 15px;
 }
-input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, textarea:focus, button[type="button"]:focus, button[type="submit"].invisible:focus {
+input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, textarea:focus, button[type="button"]:focus, button[type="submit"].invisible:focus,select {
   background-color: rgba(0,0,0,.06);
   outline: none;
 }
@@ -1092,12 +1147,6 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 .folders-select {
   font-size: 1rem;
-}
-.folder-color {
-  width: 20px;
-  height: 20px;
-  background: #000;
-  margin-right: 10px;
 }
 .task-details {
   font-size: 1rem;
@@ -1223,6 +1272,14 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   height: 320px;
   overflow: scroll;
 }
+.folder-color {
+  width: 10px;
+  height: 10px;
+  background: #444;
+  margin-right: 4px;
+  display: inline-block;
+  border-radius: 100%;
+}
 .folders-list {
   bottom: 60px;
   left: 10px;
@@ -1320,7 +1377,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   transform: translateX(-50%);
 }
 a {
-  color: #000;
+  color: #444;
 }
 .overlay {
   position: fixed;
