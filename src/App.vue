@@ -196,7 +196,6 @@
       <div class="modal" v-if="modal === 'manageFolder'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
         <h2>Manage {{selectedFolder.name}}</h2>
-        <form @submit.prevent="updateFolder(selectedFolder); modal = false">
           <p><label>Name<br>
             <input v-model="renameFolderName" style="font: inherit; width: 100%;" type="text" class="show" required />
           </label></p>
@@ -208,20 +207,23 @@
             </div>
           </label></p>
           <p>Tasks<br>
-            <div style="border: 1px #767676 solid; border-radius: 4px; height: 12wo0px; overflow: scroll;">
+            <div style="border: 1px #767676 solid; border-radius: 4px; position: relative;">
               <div v-if="selectedFolderTasksReady">
-                <draggable :list="selectedTasks" group="selected-tasks-todo">
+                <draggable :list="selectedFolder.tasks" group="selected-tasks-todo" style="height: 120px; overflow: scroll;">
                   <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in selectedFolder.tasks" :key="task.id">
-                    <span @click="changeTask(task)" :style="task.completed ? {fontSize: '15px', padding: '5px 10px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 10px'}">{{task.title}}</span>
-                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem; margin-right: 10px" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                    <span :style="task.completed ? {fontSize: '15px', padding: '5px 10px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 10px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem; margin-right: 10px; position: relative; top: 1.5px;" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
                   </div>
                 </draggable>
+                <form @submit.prevent="addNewTask(newTaskTitle, false, false)" style="padding: 10px; border-radius: 4px; width: 100%;" class="add-new-task-selected">
+                  <input style="width: 100%" required v-model="newTaskTitle" type="text" placeholder="New task" />
+                  <button :class="newTaskTitle.trim() === '' ? 'invisible muted' : 'invisible'" :disabled="newTaskTitle.trim() === ''" type="submit" aria-label="Create new task"><img src="./assets/images/plus.svg" alt="Add" /></button>
+                </form>
               </div><div v-else>Loading...</div>
             </div>
           </p>
-          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" type="button" click="updateFolder(selectedFolder); modal = false">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
           <p style="padding-bottom: 5px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="" @click="modal = 'deleteFolder'">Permanently delete notebook</button></p>
-        </form>
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
@@ -513,7 +515,7 @@ export default {
         }
         setInterval(() => {
           this.invokeSave()
-        }, 3333)
+        }, 5555)
       });
     }
   },
@@ -522,6 +524,7 @@ export default {
       this.selectedFolderTasksReady = false
       this.newFolderColor = newValue.color
       this.currentFolder.color = newValue.color
+      this.renameFolderName = newValue.name
 
       db.collection('Users').doc(this.uid).collection('Folders').doc(newValue.id).get().then((doc) => { 
         this.selectedFolder.tasks = doc.data().tasks
@@ -613,10 +616,12 @@ export default {
 
         db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
           name: this.renameFolderName,
-          color: this.newFolderColor
+          color: this.newFolderColor,
+          tasks: this.selectedFolder.tasks
         }, { merge: true }).then(() => {
           this.renameFolderName = ''
           this.newFolderColor = ''
+          this.selectedFolder = null
         })
       });
     },
@@ -626,8 +631,22 @@ export default {
         if (doc.data().tasks) {
           this.tasks = doc.data().tasks
           db.collection('Users').doc(this.uid).collection('Tasks').doc(doc.data().tasks[0].id).get().then((doc) => { 
-            this.currentTask = doc.data()
-            this.$refs.editor._data.state.editor.render(doc.data().notes)
+            if (doc.data()) {
+              this.title = doc.data().title
+              this.completed = doc.data().completed
+              this.elapsed = doc.data().elapsed
+              this.seconds = doc.data().seconds
+              this.notes = doc.data().notes
+              this.$refs.editor._data.state.editor.render(doc.data().notes)
+            } else {
+              var newTaskId = doc.data().tasks[0].id
+              var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [{data: {text: 'Write here.'}, id: "moTtRFW4VL", type: "paragraph"}], version: "2.12.4"}};
+              this.tasks = [newTask]
+
+              db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
+                db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).set(newTask)
+              })
+            }
           })
         } else {
           var newTaskId = uuidv4();
@@ -873,12 +892,14 @@ export default {
 
       copy.push(newFolder)
       this.folders = copy
+      var blankTask = this.addNewTask('New task', false, false)
 
       db.collection('Users').doc(this.uid).collection('Folders').doc(folderId).set({
         name: folderName,
         color: '#444',
-        tasks: []
+        tasks: [blankTask]
       })
+
       this.newFolderTitle = ''
       return newFolder
     },
@@ -890,7 +911,7 @@ export default {
       this.invokeSave()
     },
 
-    addNewTask(taskTitle, setCurrent = false) {
+    addNewTask(taskTitle, setCurrent = false, currentFolder = true) {
       var taskId = uuidv4();
       var newTask = {
         id: taskId,
@@ -898,7 +919,11 @@ export default {
         completed: false,
         elapsed: 0
       }
-      this.tasks.push(newTask)
+      if (currentFolder) {
+        this.tasks.push(newTask)
+      } else {
+        this.selectedFolder.tasks.push(newTask)
+      }
       
       if (setCurrent) {
         this.setLocalStorage('taskId', taskId)
@@ -1353,6 +1378,13 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
   padding: 5px 0;
   background: #fff;
 }
+.add-new-task-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  background: #fff;
+}
 .add-new-folder {
   bottom: 60px;
   width: 290px;
@@ -1467,7 +1499,7 @@ button[type="submit"]:not(.invisible),button[type="button"].submit {
   border: 0;
   background: #444;
   color: #fff;
-  padding: 5px;
+  padding: 5px 10px;
   font-size: 17px;
   font-weight: 600;
 }
