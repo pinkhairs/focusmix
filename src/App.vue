@@ -44,7 +44,7 @@
                 </form>
               </div>
             </div>
-            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Notebook" /> {{currentFolder.name}}</button>
+            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><span class="folder-color"></span> {{currentFolder.name}}</button>
             <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Queue" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
@@ -459,7 +459,7 @@ export default {
           }, 888)
           onCurrentUserSubscriptionUpdate(payments, (data) => {
             setTimeout(() => {
-              var theyreNew = !this.premium
+              var theyreNew = this.premium === false
               for (var id in data.subscriptions) {
                 this.premium = data.subscriptions[id].status === 'active'
                 if (this.premium) break;
@@ -934,7 +934,6 @@ export default {
       db.collection('Users').doc(this.uid).set({
         options: {
           color: this.activeColor,
-          premium: this.premium,
         },
         workingFolder: this.currentFolder,
         workingTask: this.taskId,
@@ -1093,6 +1092,12 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 .folders-select {
   font-size: 1rem;
+}
+.folder-color {
+  width: 20px;
+  height: 20px;
+  background: #000;
+  margin-right: 10px;
 }
 .task-details {
   font-size: 1rem;
