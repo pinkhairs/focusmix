@@ -264,7 +264,7 @@ export default {
       selectedTask: null,
       timeLeft: 3600,
       pageReady: false,
-      activeColor: '#ffffff',
+      activeColor: '#f2f2f2',
       progressBarWidth: '1px',
       colors: [
         '#ffe8fa',
@@ -505,7 +505,9 @@ export default {
         var taskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
         var original = this.tasks
         var copy = [].concat(original);
-        copy[taskIndex].title = newValue
+        if (copy.length > 0) {
+          copy[taskIndex].title = newValue
+        }
         this.tasks = copy
       }
     },
@@ -645,7 +647,6 @@ export default {
     },
     pullLocalData() {
       this.title = this.getLocalStorage('title')
-      this.activeColor = this.getLocalStorage('activeColor')
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
@@ -707,7 +708,8 @@ export default {
           {
             id: this.taskId,
             title: this.title,
-            completed: this.completed
+            completed: this.completed,
+            elapsed: this.elapsed
           }
         ],
       })
@@ -846,7 +848,6 @@ export default {
     pullData() {
       let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
           this.activeColor = doc.data().options.color
           this.premium = doc.data().options.premium
@@ -932,7 +933,6 @@ export default {
 
       db.collection('Users').doc(this.uid).set({
         options: {
-          autoplay: this.autoplay,
           color: this.activeColor,
           premium: this.premium,
         },
@@ -940,6 +940,10 @@ export default {
         workingTask: this.taskId,
         folders: this.folders
       }, { merge: true })
+      
+      this.$refs.editor._data.state.editor.save().then((data) => {
+        this.notes = data
+      })
 
       db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
         notes: this.notes,
