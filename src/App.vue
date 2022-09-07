@@ -1032,9 +1032,6 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
     position: relative;
     left: 10px;
   }
-  .action {
-    margin-left: 40px;
-  }
 }
 @media (min-width: 1024px) {
   .mark-complete {
