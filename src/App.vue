@@ -207,20 +207,20 @@
               </button>
             </div>
           </label></p>
-          <p><label>Tasks<br>
-            <div style="border: 1px #767676 solid; border-radius: 4px; height: 100px; overflow: scroll;">
+          <p>Tasks<br>
+            <div style="border: 1px #767676 solid; border-radius: 4px; height: 12wo0px; overflow: scroll;">
               <div v-if="selectedFolderTasksReady">
                 <draggable :list="selectedTasks" group="selected-tasks-todo">
                   <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in selectedFolder.tasks" :key="task.id">
-                    <span @click="changeTask(task)" :style="task.completed ? {fontSize: '15px', padding: '5px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px'}">{{task.title}}</span>
-                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                    <span @click="changeTask(task)" :style="task.completed ? {fontSize: '15px', padding: '5px 10px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px 10px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem; margin-right: 10px" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
                   </div>
                 </draggable>
               </div><div v-else>Loading...</div>
             </div>
-          </label></p>
+          </p>
           <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
-          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="" @click="modal = 'deleteFolder'">Permanently delete notebook</button></p>
+          <p style="padding-bottom: 5px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="" @click="modal = 'deleteFolder'">Permanently delete notebook</button></p>
         </form>
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
@@ -380,7 +380,7 @@ export default {
       waitingForSignin: false,
       uid: '',
       saving: false,
-      title: '',
+      title: 'Check it out',
       seconds: {
         label: '1 hour',
         value: 3600,
@@ -753,45 +753,45 @@ export default {
     convertAccount(uid) {
       var onlyFolderId = uuidv4()
       var onlyFolder = { id: onlyFolderId, name: 'Notebook', color: '#444' }
-      this.title = this.getLocalStorage('title')
-      this.notes = JSON.parse(this.getLocalStorage('notes'))
-      this.seconds = JSON.parse(this.getLocalStorage('seconds'))
-      this.elapsed = parseInt(this.getLocalStorage('elapsed'))
-      this.completed = Boolean(parseInt(this.getLocalStorage('completed')))
-      this.taskId = this.getLocalStorage('taskId')
-      this.activeColor = this.getLocalStorage('color')
-      this.currentFolder = onlyFolder
+      var title = this.getLocalStorage('title')
+      var notes = JSON.parse(this.getLocalStorage('notes'))
+      var seconds = JSON.parse(this.getLocalStorage('seconds'))
+      var elapsed = parseInt(this.getLocalStorage('elapsed'))
+      var completed = Boolean(parseInt(this.getLocalStorage('completed')))
+      var taskId = this.getLocalStorage('taskId')
+      var activeColor = this.getLocalStorage('color')
+      var currentFolder = onlyFolder
       window.localStorage.clear()
 
       db.collection('Users').doc(uid).set({
         options: {
-          color: this.activeColor,
+          color: activeColor,
           premium: false,
         },
-        workingFolder: this.currentFolder,
-        workingTask: this.taskId,
+        workingFolder: currentFolder,
+        workingTask: taskId,
         folders: [onlyFolder]
       })
 
-      db.collection('Users').doc(uid).collection('Tasks').doc(this.taskId).set({
-        notes: this.notes,
-        title: this.title,
-        seconds: this.seconds,
-        elapsed: this.elapsed,
-        completed: this.completed
+      db.collection('Users').doc(uid).collection('Tasks').doc(taskId).set({
+        notes: notes,
+        title: title,
+        seconds: seconds,
+        elapsed: elapsed,
+        completed: completed
       })
 
       db.collection('Users').doc(uid).collection('Folders').doc(onlyFolderId).set({
         tasks: [
           {
-            id: this.taskId,
-            title: this.title,
-            completed: this.completed,
-            elapsed: this.elapsed
+            id: taskId,
+            title: title,
+            completed: completed,
+            elapsed: elapsed
           }
         ],
       })
-
+      
       setTimeout(() => {
         window.location.reload()
       }, 1111)
@@ -931,6 +931,7 @@ export default {
           this.activeColor = doc.data().options.color
           this.premium = doc.data().options.premium
           this.taskId = doc.data().workingTask
+          this.folders = doc.data().folders
           return doc;
         }).then((doc) => {
           db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).get().then(doc => {
@@ -946,25 +947,20 @@ export default {
               this.config.data = this.notes
             }
           }).then(() => {
-            db.collection('Users').doc(this.uid).get().then((doc) => {
-              this.folders = doc.data().folders
-            }).then(() => {
-              if (this.currentFolder) {
-                db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
-                  var orderedTasks = doc.data().tasks;
-                  if (doc.exists) {
-                    this.tasks = orderedTasks
-                    resolve(true)
-                  }
-                }).catch(() => reject(false))
-              }
-            }).catch(() => reject(false))
+            if (this.currentFolder) {
+              db.collection('Users').doc(this.uid).collection('Folders').doc(this.currentFolder.id).get().then(doc => {
+                var orderedTasks = doc.data().tasks;
+                if (doc.exists) {
+                  this.tasks = orderedTasks
+                  resolve(true)
+                }
+              }).catch(() => reject(false))
+            }
           }).catch(() => reject(false))
         }).catch(() => reject(false))
-      })
+        }).catch(() => reject(false))
       pageReady.then(() => {
         this.pageReady = true
-        window.localStorage.clear()
       }).catch(() => {
         this.pageReady = false
       })
