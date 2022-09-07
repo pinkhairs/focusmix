@@ -4,6 +4,7 @@
       <nav class="site-nav">
         <ul>
           <li v-if="authenticated"><button type="button" class="muted" @click="invokeSave"><img src="./assets/images/cloud.svg" :class="saving ? 'muted' : ''" alt="Autosave" aria-label="Autosaving" /></button></li>
+          <li><button type="button" :class="premium ? '' : 'muted'" @click="modal = 'premium'"><img src="./assets/images/star.svg" alt="Upgrade" aria-label="Go Premium" /></button></li>
           <li><button type="button" :class="authenticated ? '' : 'muted'" @click="modal = 'account'"><img src="./assets/images/account.svg" alt="Account" aria-label="Your Account" /></button></li>
           <li><button class="muted" type="button" @click="modal = 'about'" target="_blank"><img src="./assets/images/dots.svg" alt="More" aria-label="About this site"></button></li>
         </ul>
@@ -20,7 +21,7 @@
       <footer class="controls">
         <ul class="folders">
           <li>
-            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button" @click="queueOpen = !queueOpen"><img src="./assets/images/queue.svg" alt="Folder" /></button>
+            <button v-if="authenticated && !premium" style="display: inline-flex; align-items: center; gap: 10px;"  type="button" @click="queueOpen = !queueOpen"><img src="./assets/images/queue.svg" alt="Queue" /></button>
             <div class="queue-list" v-if="queueOpen">
               <div>
                 <div v-if="shuffle">
@@ -43,12 +44,12 @@
                 </form>
               </div>
             </div>
-            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
-            <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span>Sign in for a queue</span></button>
+            <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Notebook" /> {{currentFolder.name}}</button>
+            <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Queue" /> <span>Sign in for a queue</span></button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
                 <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
-                  <button style="text-align: left" class="change-folder" type="button" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' folder'">{{folder.name}}</button>
+                  <button style="text-align: left" class="change-folder" type="button" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' notebook'">{{folder.name}}</button>
                   <div style="display: flex; gap: 5px;">
                     <button class="muted" type="button" :aria-label="'Rename '+folder.name" @click="modal = 'renameFolder'; selectedFolder = folder">
                       <img src="./assets/images/pencil.svg" />
@@ -65,7 +66,7 @@
               </draggable>
               <form @submit.prevent="addNewFolder(newFolderName)" class="add-new-folder">
                 <input style="width: 100%" v-model="newFolderName" type="text" placeholder="New folder name" />
-                <button class="invisible" ref="addNewFolderButton" :class="newFolderName.trim() === '' ? 'muted' : ''" :disabled="newFolderName.trim() === ''" type="submit"  aria-label="Create new folder"><img src="./assets/images/plus.svg" alt="Add" /></button>
+                <button class="invisible" ref="addNewFolderButton" :class="newFolderName.trim() === '' ? 'muted' : ''" :disabled="newFolderName.trim() === ''" type="submit"  aria-label="Create new notebook"><img src="./assets/images/plus.svg" alt="Add" /></button>
               </form>
             </div>
           </li>
@@ -145,27 +146,36 @@
         <div v-if="premium">
           <h2>You’re premium!</h2>
           <ul class="features">
-            <li>Cloneable folders</li>
-            <li>Task archives</li>
-            <li>Zapier integration</li>
+            <li>+10 notes and archive</li>
+            <li>Notebooks</li>
+            <li>Shareable links</li>
           </ul>
           <p>Want to cancel or manage your subscription?</p>
-          <form @submit.prevent="goPremium(false); modal = false">
+          <form @submit.prevent="manageSubscription(); modal = false">
             <p style="padding-bottom: 10px; font-size: 15px;"><button type="submit">Go to manage</button></p>
           </form>
         </div>
         <div v-else>
           <h2>Go premium</h2>
-          <p>Knock out your todo lists for just $5 USD monthly.</p>
+          <p>Knock out your todo lists for just $5 USD monthly (10% off yearly).</p>
           <ul class="features">
-            <li>Cloneable tasks</li>
-            <li>Task archives</li>
-            <li>Zapier integration</li>
+            <li>+10 notes and archive</li>
+            <li>Notebooks</li>
+            <li>Shareable links</li>
           </ul>
-          <form @submit.prevent="goPremium(); modal = false">
-            <p style="padding-bottom: 10px; line-height: 2; font-size: 15px;"><button type="submit">Subscribe</button><br>You can cancel anytime!</p>
-          </form>
+          <p @click="upgrade('test')" style="padding-bottom: 10px; text-align: center; line-height: 2; font-size: 15px;"><button :disabled="loadingStripe" style="text-align: center; width: 100%; margin-bottom: 10px;" type="button" :class="loadingStripe ? 'muted submit' : 'submit'">Subscribe Monthly - $5</button><button :disabled="loadingStripe" @click="upgrade('yearly')" style="text-align: center; width: 100%" type="button" :class="loadingStripe ? 'muted submit' : 'submit'">Subscribe Annually - $50</button><br>You can cancel anytime!</p>
         </div>
+      </div>
+      <div class="modal" v-if="modal === 'newPremium'">
+        <button @click="modal = false" type="button" class="close-button">&times;</button>
+        <h2>Welcome to the premium experience!</h2>
+        <p>Thanks for subscribing.</p>
+        <ul class="features">
+          <li>+10 notes and archive</li>
+          <li>Notebooks</li>
+          <li>Shareable links</li>
+        </ul>
+        <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="submit" @click="modal = false">OK</button></p>
       </div>
       <div class="modal" v-if="modal === 'restart'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
@@ -231,17 +241,26 @@ import Marker from '@editorjs/marker'
 import Delimiter from '@editorjs/delimiter'
 import InlineCode from '@editorjs/inline-code';
 import draggable from "vuedraggable";
-import {firebase, db, auth} from './db'
+import {firebase, db, auth } from './db'
 import { v4 as uuidv4 } from 'uuid';
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css';
 import Times from './assets/json/times.json'
+import { getStripePayments, createCheckoutSession, onCurrentUserSubscriptionUpdate, createPortalLink } from "@stripe/firestore-stripe-payments";
+import { getFunctions, httpsCallable } from "firebase/functions";
+
+var getApp = firebase.app();
+const payments = getStripePayments(getApp, {
+  productsCollection: "products",
+  customersCollection: "customers",
+});
 
 export default {
   name: 'App',
   components: { draggable, vSelect },
   data() {
     return {
+      loadingStripe: false,
       selectedTask: null,
       timeLeft: 3600,
       pageReady: false,
@@ -268,7 +287,7 @@ export default {
             class: Header,
             config: {
               placeholder: 'Enter a header',
-              levels: [2, 3, 4],
+              levels: [1, 2, 3, 4],
               defaultLevel: 1,
             }
           },
@@ -319,7 +338,7 @@ export default {
       newFolderName: '',
       newTaskTitle: '',
       authenticated: false,
-      premium: false,
+      premium: null,
       lightningMode: false,
       shuffle: false,
       autoplay: false,
@@ -438,6 +457,18 @@ export default {
           setTimeout(() => {
             this.pageReady = true
           }, 888)
+          onCurrentUserSubscriptionUpdate(payments, (data) => {
+            setTimeout(() => {
+              var theyreNew = !this.premium
+              for (var id in data.subscriptions) {
+                this.premium = data.subscriptions[id].status === 'active'
+                if (this.premium) break;
+              }
+              if (theyreNew && this.premium) {
+                this.modal = 'newPremium'
+              }
+            }, 1111)
+          })
         } else {
           this.uid = false
           const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
@@ -445,8 +476,8 @@ export default {
           if (Boolean(parseInt(this.getLocalStorage('setupComplete')))) {
             this.pullLocalData()
           } else {
-            window.localStorage.clear()
             this.createWelcome()
+            window.localStorage.clear()
           }
 
           setTimeout(() => {
@@ -508,6 +539,34 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    upgrade(type = 'monthly') {
+      this.loadingStripe = true
+      var prices = {
+        'yearly': 'price_1LfC5PBhpaBnJYVfMcgnxQ2z',
+        'monthly': 'price_1LfC5PBhpaBnJYVfsosyfGHn',
+        'test': 'price_1LfQLVBhpaBnJYVf9veS9UYc'
+      }
+      createCheckoutSession(payments, {
+        price: prices[type]
+      }).then((session) => {
+        window.location.href = session.url
+      })
+    },
+    manageSubscription() {
+      // after initializing Firebase
+      const functions = getFunctions();
+
+      const functionRef = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink');
+
+      functionRef({
+          returnUrl: `${window.location.origin}`,
+          locale: "auto",
+        })
+        .then((result) => {
+          const data = result.data;
+          window.location.href = data.url;
+        });
+    },
     goToNextTask() {
       this.pause()
       var tasks = this.tasks
@@ -720,7 +779,6 @@ export default {
     pause() {
       this.working = false
       this.transitionDuration = '0s, 100ms, 100ms'
-      console.log(this.elapsed)
       this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
       clearInterval(this.timer)
       this.invokeSave()
@@ -766,6 +824,7 @@ export default {
           this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
           this.activeColor = doc.data().options.color
+          this.premium = doc.data().options.premium
           this.taskId = doc.data().workingTask
           return doc;
         }).then((doc) => {
@@ -831,23 +890,26 @@ export default {
       this.progressBarWidth = '1px'
     },
     invokeSave() {
-      this.setLocalStorage('seconds', JSON.stringify(this.seconds))
-      this.setLocalStorage('completed', this.completed)
-      this.setLocalStorage('elapsed', this.elapsed)
-      this.setLocalStorage('taskId', this.taskId)
-      this.setLocalStorage('color', this.activeColor)
+      if (!this.uid) {
+        this.setLocalStorage('seconds', JSON.stringify(this.seconds))
+        this.setLocalStorage('completed', this.completed)
+        this.setLocalStorage('elapsed', this.elapsed)
+        this.setLocalStorage('taskId', this.taskId)
+        this.setLocalStorage('color', this.activeColor)
 
-      this.saving = true;
-      this.$refs.editor._data.state.editor.save().then((data) => {
-        this.notes = data
-        this.setLocalStorage('notes', JSON.stringify(data))
-      })
-      if (!this.uid) return;
+        this.saving = true;
+        this.$refs.editor._data.state.editor.save().then((data) => {
+          this.notes = data
+          this.setLocalStorage('notes', JSON.stringify(data))
+        })
+        return;
+      }
 
       db.collection('Users').doc(this.uid).set({
         options: {
           autoplay: this.autoplay,
           color: this.activeColor,
+          premium: this.premium,
         },
         workingFolder: this.currentFolder,
         workingTask: this.taskId,
@@ -1245,6 +1307,8 @@ a {
   transform: translate(-50%, -50%);
   background: rgba(0, 0, 0, 0);
   z-index: 101;
+  text-align: center;
+  width: 100%;
   cursor: wait;
 }
 .modal {
