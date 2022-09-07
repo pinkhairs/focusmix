@@ -49,7 +49,7 @@
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
                 <div v-for="folder in folders" :key="folder.id">
-                  <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: center; text-align: left; display: flex; align-items: center; gap: 4px; justify-content: space-between" class="change-folder" @click="changeFolder(folder)" :aria-label="'Change to '+folder.name+' notebook'"><div><span :style="{backgroundColor: folder.color}" class="folder-color"></span> {{folder.name}}</div>
+                  <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: center; text-align: left; display: flex; align-items: center; gap: 4px; justify-content: space-between" class="change-folder" :aria-label="'Change to '+folder.name+' notebook'"><div @click="changeFolder(folder)"><span :style="{backgroundColor: folder.color}" class="folder-color"></span> {{folder.name}}</div>
                     <div style="display: flex; gap: 5px; width: 20px">
                       <button class="muted" type="button" :aria-label="'Manage '+folder.name" @click="modal = 'manageFolder'; selectedFolder = folder">
                         <img src="./assets/images/pencil.svg" />
@@ -207,7 +207,20 @@
               </button>
             </div>
           </label></p>
+          <p><label>Tasks<br>
+            <div style="border: 1px #767676 solid; border-radius: 4px; height: 100px; overflow: scroll;">
+              <div v-if="selectedFolderTasksReady">
+                <draggable :list="selectedTasks" group="selected-tasks-todo">
+                  <div style="border-bottom: #ddd 1px solid; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between" v-for="task in selectedFolder.tasks" :key="task.id">
+                    <span @click="changeTask(task)" :style="task.completed ? {fontSize: '15px', padding: '5px', textDecoration: 'line-through', opacity: .5} : {fontSize: '15px', padding: '5px'}">{{task.title}}</span>
+                    <button v-if="tasks.length > 1 && taskId !== task.id" class="muted" style="font-size: 1.25rem" type="button" @click="modal = 'deleteTask'; selectedTask = task" aria-label="Delete task"><img src="./assets/images/trash.svg" alt="Delete" /></button>
+                  </div>
+                </draggable>
+              </div><div v-else>Loading...</div>
+            </div>
+          </label></p>
           <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="submit">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="" @click="modal = 'deleteFolder'">Permanently delete notebook</button></p>
         </form>
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
@@ -261,6 +274,8 @@ export default {
   components: { draggable, vSelect },
   data() {
     return {
+      selectedTasks: [],
+      selectedFolderTasksReady: false,
       folderColors: [
         '#444',
         '#9f9f9f',
@@ -445,6 +460,7 @@ export default {
                   this.convertAccount(this.uid)
                 } else {
                   this.pullData()
+                  window.localStorage.clear()
                 }
               }, 888)
             });
@@ -489,7 +505,6 @@ export default {
             this.pullLocalData()
           } else {
             this.createWelcome()
-            window.localStorage.clear()
           }
 
           setTimeout(() => {
@@ -504,8 +519,14 @@ export default {
   },
   watch: {
     selectedFolder(newValue) {
+      this.selectedFolderTasksReady = false
       this.newFolderColor = newValue.color
       this.currentFolder.color = newValue.color
+
+      db.collection('Users').doc(this.uid).collection('Folders').doc(newValue.id).get().then((doc) => { 
+        this.selectedFolder.tasks = doc.data().tasks
+        this.selectedFolderTasksReady = true
+      })
     },
     seconds(newValue) {
       if (this.autoplay) {
@@ -557,6 +578,20 @@ export default {
     window.removeEventListener('beforeunload', this.beforeWindowUnload)
   },
   methods: {
+    deleteFolder(folder) {
+      db.collection('Users').doc(this.uid).collection('Folders').doc(folder).delete().then(() => {
+        var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder))
+        var original = this.folders
+        var newFolders = [].concat(original);
+        newFolders.splice(selectedFolderIndex, 1)
+        this.folders = newFolders
+        db.collection('Users').doc(this.uid).get().then((doc) => {
+          db.collection('Users').doc(this.uid).set({
+            folders: newFolders,
+          }, { merge: true })
+        })
+      });
+    },
     updateFolder(folder) {
       db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).get().then(() => {
         var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === folder.id))
@@ -569,26 +604,20 @@ export default {
           color: this.newFolderColor
         }
 
+        this.folders = newFolders
+
         if (this.currentFolder.id === newFolders[selectedFolderIndex].id) {
           this.currentFolder.name = this.renameFolderName
           this.currentFolder.color = this.newFolderColor
         }
 
         db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
-        name: this.renameFolderName
+          name: this.renameFolderName,
+          color: this.newFolderColor
         }, { merge: true }).then(() => {
           this.renameFolderName = ''
           this.newFolderColor = ''
         })
-        db.collection('Users').doc(this.uid).get().then((doc) => {
-          db.collection('Users').doc(this.uid).set({
-            folders: newFolders,
-            workingFolder: this.currentFolder
-          }, { merge: true }).then(() => {
-            this.saving = false;
-          })
-        })
-        this.folders = newFolders
       });
     },
     changeFolder(folder) {
@@ -722,7 +751,8 @@ export default {
       }
     },
     convertAccount(uid) {
-      var onlyFolder = { id: uuidv4(), name: 'Notebook', color: '#444' }
+      var onlyFolderId = uuidv4()
+      var onlyFolder = { id: onlyFolderId, name: 'Notebook', color: '#444' }
       this.title = this.getLocalStorage('title')
       this.notes = JSON.parse(this.getLocalStorage('notes'))
       this.seconds = JSON.parse(this.getLocalStorage('seconds'))
@@ -751,7 +781,7 @@ export default {
         completed: this.completed
       })
 
-      db.collection('Users').doc(uid).collection('Folders').doc(this.currentFolder.id).set({
+      db.collection('Users').doc(uid).collection('Folders').doc(onlyFolderId).set({
         tasks: [
           {
             id: this.taskId,
@@ -815,7 +845,6 @@ export default {
       this.invokeSave()
     },
     createWelcome() {
-      this.title = 'Check it out'
       this.seconds = {value: 60, label: '1 minute'}
       this.notes = { blocks: this.welcomeBlocks, time: Date.now(), version: '2.18.0' }
       this.elapsed = 0
@@ -824,7 +853,7 @@ export default {
       this.activeColor = this.colors[Math.floor(Math.random() * this.colors.length)];
       this.setLocalStorage('color', this.activeColor);
       this.setLocalStorage('taskId', this.taskId);
-      this.setLocalStorage('title', this.title);
+      this.setLocalStorage('title', 'Check it out');
       this.setLocalStorage('seconds', JSON.stringify(this.seconds));
       this.setLocalStorage('notes', JSON.stringify(this.notes));
       this.setLocalStorage('elapsed', this.elapsed);
@@ -996,7 +1025,6 @@ export default {
         this.$refs.editor._data.state.editor.save().then((data) => {
           this.notes = data
         })
-        return;
       }
 
       db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).set({
