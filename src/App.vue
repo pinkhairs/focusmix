@@ -474,7 +474,9 @@ export default {
         var taskIndex = this.tasks.indexOf(this.tasks.find(element => element.id === this.taskId))
         var original = this.tasks
         var copy = [].concat(original);
-        copy[taskIndex].title = newValue
+        if (copy[taskIndex] && copy[taskIndex].title) {
+          copy[taskIndex].title = newValue
+        }
         this.tasks = copy
       }
     },
