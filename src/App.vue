@@ -44,7 +44,7 @@
               </div>
             </div>
             <button v-if="authenticated && premium" style="display: inline-flex; align-items: center; gap: 4px;" @click="foldersOpen = !foldersOpen" class="folders-select" type="button"><img src="./assets/images/folder.svg" alt="Folder" /> {{currentFolder.name}}</button>
-            <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;" @click="modal = 'account'" class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span class="queue-login">Queue in future</span></button>
+            <button v-if="!authenticated" style="display: inline-flex; align-items: center; gap: 10px;"  class="folders-select" type="button"><img src="./assets/images/queue.svg" alt="Folder" /> <span class="queue-login">Queue in future</span></button>
             <div v-if="foldersOpen" class="folders-list">
               <draggable group="folders" :list="folders">
                 <div style="border-bottom: #ddd solid 1px; margin-bottom: 5px; padding-bottom: 5px; display: flex; align-items: flex-start; justify-content: space-between" v-for="folder in folders" :key="folder.id">
