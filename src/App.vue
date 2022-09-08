@@ -112,7 +112,7 @@
         </div>
         <div class="mark-complete">
           <button @click="completed = false" v-if="completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
-          <button v-else @click="skip(true)" type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
+          <button v-else type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
         </div>
       </footer>
       <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: activeColor }"></div>
@@ -580,12 +580,12 @@ export default {
     skip(completed = false) {
       if (completed) {
         this.completed = true
-        if (this.authenticated) {
-          if (this.tasks.length > 1) {
-          }
-        } else {
-          this.modal = 'account'
-        }
+        // if (this.authenticated) {
+        //   if (this.tasks.length > 1) {
+        //   }
+        // } else {
+        //   this.modal = 'account'
+        // }
         var audio = new Audio(this.success);
         audio.play();
         this.pause()
