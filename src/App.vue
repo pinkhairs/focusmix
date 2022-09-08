@@ -83,7 +83,7 @@
           </div>
           <div class="browse">
             <div class="muted tooltip">
-              <button @click="startOver()" type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button>
+              <!-- <button type="button"><img src="./assets/images/startover.svg" alt="Start over" aria-label="Start over" /></button> -->
               <span class="tooltiptext">Start over</span>
             </div>
             <div>
@@ -91,7 +91,7 @@
               <button v-else type="button"  @click="play()"><img src="./assets/images/play.svg" alt="Start" aria-label="Start task" /></button>
             </div>
             <div class="muted tooltip">
-              <button @click="authenticated ? goToNextTask() : modal = 'account'" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button>
+              <!-- <button @click="authenticated ? goToNextTask() : modal = 'account'" type="button"><img src="./assets/images/skip.svg" alt="Skip" aria-label="Go to next task" /></button> -->
               <span class="tooltiptext">Next task</span>
             </div>
           </div>
