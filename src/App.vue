@@ -128,9 +128,9 @@
           <p>Log into your existing account or create a new one if none exists.</p>
           <p style="font-size: 16px">Wondering why you should register? Add a queue and access your notes/preferences across devices for free.</p>
           <form @submit.prevent="sendEmailSignIn">
-            <p><label>Email
+            <p><label>Email</label>
               <input :disabled="waitingForSignin" v-model="email" type="email" required />
-            </label></p>
+            </p>
             <p style="padding-bottom: 10px"><button :disabled="!email" :class="waitingForSignin || !email ? 'muted' : ''" type="submit">{{waitingForSignin ? 'Check your email' : 'Register / login'}}</button><br><span style="display: block; margin-top: 10px; font-size: 16px">An instant sign-in link will be emailed to you.</span></p>
           </form>
         </div>
@@ -196,16 +196,16 @@
       <div class="modal" v-if="modal === 'manageFolder'">
         <button @click="modal = false" type="button" class="close-button">&times;</button>
         <h2>Manage {{selectedFolder.name}}</h2>
-          <p><label>Name<br>
+          <p><label>Name</label><br>
             <input v-model="renameFolderName" style="font: inherit; width: 100%;" type="text" class="show" required />
-          </label></p>
-          <p><label>Color<br>
+          </p>
+          <p><label>Color</label><br>
             <div style="display: flex; align-items: center;">
               <button @click="newFolderColor = color" type="button" v-for="color in folderColors" :key="color">
                 <span :style="newFolderColor === color ? {backgroundColor: color, border:' #444 2px solid', width: '20px', height: '20px' } : { backgroundColor: color, opacity: '.5', width: '20px', height: '20px' }" class="folder-color"></span>
               </button>
             </div>
-          </label></p>
+          </p>
           <p>Tasks<br>
             <div style="border: 1px #767676 solid; border-radius: 4px; position: relative;">
               <div v-if="selectedFolderTasksReady">
@@ -222,7 +222,7 @@
               </div><div v-else>Loading...</div>
             </div>
           </p>
-          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" type="button" click="updateFolder(selectedFolder); modal = false">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
+          <p style="padding-bottom: 10px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button class="submit" type="button" @click="updateFolder(selectedFolder); modal = false">Save changes</button><button type="button" class="" @click="modal = false">Never mind</button></p>
           <p style="padding-bottom: 5px; line-height: 2; font-size: 15px; display: inline-flex; gap: 10px"><button type="button" class="" @click="modal = 'deleteFolder'">Permanently delete notebook</button></p>
       </div>
       <div class="modal" v-if="modal === 'moreTime'">
@@ -288,7 +288,7 @@ export default {
         '#ff252f',
         '#ff65d2'
       ],
-      newFolderColor: '',
+      newFolderColor: '#444',
       loadingStripe: false,
       selectedTask: null,
       timeLeft: 3600,
@@ -487,18 +487,6 @@ export default {
           setTimeout(() => {
             this.pageReady = true
           }, 888)
-          onCurrentUserSubscriptionUpdate(payments, (data) => {
-            setTimeout(() => {
-              var theyreNew = this.premium === false
-              for (var id in data.subscriptions) {
-                this.premium = data.subscriptions[id].status === 'active'
-                if (this.premium) break;
-              }
-              if (theyreNew && this.premium) {
-                this.modal = 'newPremium'
-              }
-            }, 1111)
-          })
         } else {
           this.uid = false
           const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
@@ -520,16 +508,27 @@ export default {
     }
   },
   watch: {
-    selectedFolder(newValue) {
-      this.selectedFolderTasksReady = false
-      this.newFolderColor = newValue.color
-      this.currentFolder.color = newValue.color
-      this.renameFolderName = newValue.name
+    selectedFolder: {
+      deep: true,
+      handler: function(newValue, oldValue) {
+        this.selectedFolderTasksReady = false
+        this.selectedFolder.color = newValue.color
+        if (this.currentFolder.id === newValue.id) {
+          this.tasks = this.selectedFolder.tasks
+          this.currentFolder.color = newValue.color
+          this.renameFolderName = newValue.name
+        }
+        var selectedFolderIndex = this.folders.indexOf(this.folders.find(element => element.id === newValue.id))
 
-      db.collection('Users').doc(this.uid).collection('Folders').doc(newValue.id).get().then((doc) => { 
-        this.selectedFolder.tasks = doc.data().tasks
-        this.selectedFolderTasksReady = true
-      })
+        var original = this.folders
+        var newFolders = [].concat(original);
+        newFolders[selectedFolderIndex].tasks = newValue.tasks
+        this.folders = newFolders
+
+        db.collection('Users').doc(this.uid).collection('Folders').doc(newValue.id).get().then((doc) => {
+          this.selectedFolderTasksReady = true
+        })
+      }
     },
     seconds(newValue) {
       if (this.autoplay) {
@@ -604,7 +603,8 @@ export default {
         newFolders[selectedFolderIndex] = {
           name: this.renameFolderName,
           id: folder.id,
-          color: this.newFolderColor
+          color: this.newFolderColor,
+          tasks: this.selectedFolder.tasks
         }
 
         this.folders = newFolders
@@ -616,8 +616,7 @@ export default {
 
         db.collection('Users').doc(this.uid).collection('Folders').doc(folder.id).set({
           name: this.renameFolderName,
-          color: this.newFolderColor,
-          tasks: this.selectedFolder.tasks
+          color: this.newFolderColor
         }, { merge: true }).then(() => {
           this.renameFolderName = ''
           this.newFolderColor = ''
@@ -640,7 +639,7 @@ export default {
               this.$refs.editor._data.state.editor.render(doc.data().notes)
             } else {
               var newTaskId = doc.data().tasks[0].id
-              var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [{data: {text: 'Write here.'}, id: "moTtRFW4VL", type: "paragraph"}], version: "2.12.4"}};
+              var newTask = {title: 'New task', id: newTaskId, elapsed: 0, length: {label: '1 hour', value: 3600}, completed: false, notes: {blocks: [{data: {text: 'Write here.'}, id: "index", type: "paragraph"}], version: "2.12.4"}};
               this.tasks = [newTask]
 
               db.collection('Users').doc(this.uid).collection('Tasks').doc(newTaskId).get().then((doc) => { 
@@ -919,10 +918,13 @@ export default {
         completed: false,
         elapsed: 0
       }
-      if (currentFolder) {
+      if (currentFolder || this.selectedFolder.id === this.currentFolder.id) {
         this.tasks.push(newTask)
       } else {
         this.selectedFolder.tasks.push(newTask)
+        db.collection('Users').doc(this.uid).collection('Folders').doc(this.selectedFolder.id).set({
+          tasks: this.selectedFolder.tasks
+        }, { merge: true })
       }
       
       if (setCurrent) {
@@ -952,12 +954,27 @@ export default {
     pullData() {
       let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.currentFolder = doc.data().workingFolder
+          this.currentFolder = {
+            id: doc.data().workingFolder.id,
+            name: doc.data().workingFolder.name,
+            color: doc.data().workingFolder.color
+          }
           this.activeColor = doc.data().options.color
-          this.premium = doc.data().options.premium
           this.taskId = doc.data().workingTask
           this.folders = doc.data().folders
-          return doc;
+          
+          onCurrentUserSubscriptionUpdate(payments, (data) => {
+            setTimeout(() => {
+              var theyreNew = this.premium === false
+              for (var id in data.subscriptions) {
+                this.premium = data.subscriptions[id].status === 'active'
+                if (this.premium) break;
+              }
+              if (theyreNew && this.premium) {
+                this.modal = 'newPremium'
+              }
+            }, 1111)
+          })
         }).then((doc) => {
           db.collection('Users').doc(this.uid).collection('Tasks').doc(this.taskId).get().then(doc => {
             if (doc.exists) {
