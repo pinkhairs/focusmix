@@ -764,7 +764,6 @@ export default {
     pullData() {
       let pageReady = new Promise((resolve, reject) => {
         db.collection('Users').doc(this.uid).get().then(doc => {
-          this.autoplay = doc.data().options.autoplay
           this.currentFolder = doc.data().workingFolder
           this.activeColor = doc.data().options.color
           this.taskId = doc.data().workingTask
@@ -846,7 +845,6 @@ export default {
 
       db.collection('Users').doc(this.uid).set({
         options: {
-          autoplay: this.autoplay,
           color: this.activeColor,
         },
         workingFolder: this.currentFolder,
