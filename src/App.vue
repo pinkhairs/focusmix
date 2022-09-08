@@ -426,7 +426,7 @@ export default {
         this.invokeSave()
         setInterval(() => {
           this.invokeSave()
-        }, 3333)
+        }, 5555)
       }, 9999)
     } else {
       auth.onAuthStateChanged((user) => {
@@ -455,7 +455,7 @@ export default {
         }
         setInterval(() => {
           this.invokeSave()
-        }, 3333)
+        }, 5555)
       });
     }
   },
@@ -682,7 +682,6 @@ export default {
       } else {
         this.activeColor = this.colors[nextIndex]
       }
-      this.invokeSave()
     },
     beforeWindowUnload(e) {
       this.invokeSave()
@@ -723,10 +722,8 @@ export default {
     pause() {
       this.working = false
       this.transitionDuration = '0s, 100ms, 100ms'
-      console.log(this.elapsed)
       this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
       clearInterval(this.timer)
-      this.invokeSave()
     },
 
     addNewTask(taskTitle, setCurrent = false) {
@@ -833,18 +830,19 @@ export default {
       this.progressBarWidth = '1px'
     },
     invokeSave() {
-      this.setLocalStorage('seconds', JSON.stringify(this.seconds))
-      this.setLocalStorage('completed', this.completed)
-      this.setLocalStorage('elapsed', this.elapsed)
-      this.setLocalStorage('color', this.activeColor)
+      if (this.uid) {
+        this.setLocalStorage('seconds', JSON.stringify(this.seconds))
+        this.setLocalStorage('completed', this.completed)
+        this.setLocalStorage('elapsed', this.elapsed)
+        this.setLocalStorage('color', this.activeColor)
 
-      this.saving = true;
-      this.$refs.editor._data.state.editor.save().then((data) => {
-        this.notes = data
-        this.setLocalStorage('notes', JSON.stringify(data))
-      })
-      if (!this.uid) return;
-
+        this.saving = true;
+        this.$refs.editor._data.state.editor.save().then((data) => {
+          this.notes = data
+          this.setLocalStorage('notes', JSON.stringify(data))
+        })
+        return;
+      }
       db.collection('Users').doc(this.uid).set({
         options: {
           color: this.activeColor,
