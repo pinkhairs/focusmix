@@ -112,7 +112,7 @@
         </div>
         <div class="mark-complete">
           <button @click="completed = false" v-if="completed" type="button"><img src="./assets/images/checkmark-done.svg" alt="Yay!" aria-label="All done!" /></button>
-          <button v-else type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
+          <button @click="skip(true)" v-else type="button"><img src="./assets/images/mark-complete.svg" alt="Mark Complete" aria-label="All done!" /></button>
         </div>
       </footer>
       <div @click="goToNextColor()" style="width: 30px" class="color" :style="{ backgroundColor: activeColor }"></div>
@@ -639,6 +639,9 @@ export default {
         window.location.reload()
       }, 1111)
     },
+    toTimeString(seconds) {
+      return new Date(seconds * 1000).toISOString().substr(11, 8);;
+    },
     play() {
       this.completed = false;
       this.progressBarWidth = 'calc(100vw - 30px)'
@@ -648,6 +651,7 @@ export default {
         this.transitionDuration = this.seconds.value-this.elapsed+'s, 100ms, 100ms'
       }
       this.working = true
+      document.title = this.toTimeString(this.seconds.value-this.elapsed);
       this.timer = setInterval(() => {
         this.elapsed = this.elapsed+1;
         if (this.lightningMode) {
@@ -665,6 +669,8 @@ export default {
           }
           clearInterval(this.timer);
         }
+
+        document.title = this.toTimeString(this.seconds.value-this.elapsed);
       }, 1000)
     },
     getLocalStorage(key) {
@@ -724,6 +730,7 @@ export default {
       this.transitionDuration = '0s, 100ms, 100ms'
       this.progressBarWidth = 'calc('+this.elapsed/this.seconds.value*100+'vw - 30px)'
       clearInterval(this.timer)
+      document.title = 'Focusmix. Free Task Timer Online for Students. Aesthetic.'
     },
 
     addNewTask(taskTitle, setCurrent = false) {
