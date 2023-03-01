@@ -51,7 +51,7 @@ export const useStore = defineStore({
                     type: "paragraph"
                 },
                 {
-                    data: {text: 'Free features behind a login include a queue and archive, lightning mode ⚡️ (halves the remaining time), shuffle, autoplay, and cross-device access.'},
+                    data: {text: 'You have access to a task queue and archive'},
                     id: "seYBLpHl2W",
                     type: "paragraph"
                 },
