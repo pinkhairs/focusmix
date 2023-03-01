@@ -1,5 +1,4 @@
 <svg width="71" height="72" viewBox="0 0 71 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle r="23.5" transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 35.6046 35.9606)" stroke="#444444" stroke-width="3"/>
-<line y1="-2.5" x2="10.6577" y2="-2.5" transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 32.3147 45.7125)" stroke="#444444" stroke-width="5"/>
-<line x1="30.596" y1="43.897" x2="44.7117" y2="30.5328" stroke="#444444" stroke-width="5"/>
+<path d="M34.0825 43.9447L26.5463 36.4086" stroke="#444444" stroke-width="5"/>
+<path d="M30.596 43.897L44.7117 30.5328" stroke="#444444" stroke-width="5"/>
 </svg>

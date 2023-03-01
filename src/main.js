@@ -1,11 +1,5 @@
-import Vue from 'vue'
-import App from './App'
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import App from './App.vue'
 
-import Editor from 'vue-editor-js/src'
-Vue.use(Editor)
-
-Vue.config.productionTip = false
-
-new Vue({
-  render: h => h(App)
-}).$mount('#app')
+createApp(App).use(createPinia()).mount('#app')
