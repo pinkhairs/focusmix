@@ -1,3 +1,3 @@
-import AboutSiteModal from './AboutSiteModal.vue'
+import ModalContent from './ModalContent'
 
-export { AboutSiteModal }
+export default ModalContent

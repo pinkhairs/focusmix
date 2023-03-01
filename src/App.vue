@@ -2,29 +2,21 @@
   <user-nav />
   <main-content />
   <controls-nav />
-  <div class="modals">
-    <about-site-modal />
-    <queue-modal />
-    <task-over-modal />
-  </div>
+  <modal-content />
 </template>
 
 <script>
 import UserNav from '@/components/UserNav'
 import MainContent from '@/components/MainContent'
 import ControlsNav from '@/components/ControlsNav'
-import AboutSiteModal from '@/components/ModalPopups/AboutSiteModal.vue'
-import QueueModal from '@/components/ModalPopups/QueueModal.vue'
-import TaskOverModal from '@/components/ModalPopups/TaskOverModal.vue'
+import ModalContent from '@/components/ModalPopups'
 
 export default {
   components: {
     UserNav,
     MainContent,
     ControlsNav,
-    AboutSiteModal,
-    QueueModal,
-    TaskOverModal
+    ModalContent
   }
 }
 </script>
@@ -350,6 +342,7 @@ input[type="text"]:focus,input[type="text"]:focus:not(.show), select:focus, text
 }
 a {
   color: #000;
+  text-decoration-thickness: 1px;
 }
 .overlay {
   position: fixed;
