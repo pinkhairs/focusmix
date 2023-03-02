@@ -1,14 +1,20 @@
 <template>
-    <input type="text" v-model="title" @change="updateTitle(title)" class="task-title" placeholder="Name your task" />
+    <input ref="titleRef" @change="updateTitle($refs.titleRef.value)" type="text" :value="title" class="task-title" placeholder="Name your task" />
+    <input type="hidden" />
 </template>
 
-<script setup>
+<script>
 import { computed } from 'vue'
 import { useStore } from '@/stores'
 
-const store = useStore()
-const title = computed(() => store.title)
-const updateTitle = (newTitle) => {
-    store.updateTitle(newTitle)
+export default {
+    setup() {
+        const store = useStore()
+        const updateTitle = (newTitle) => {
+            store.updateTitle(newTitle)
+        }
+        const title = computed(() => store.title)
+        return { store, updateTitle, title }
+    }
 }
 </script>
