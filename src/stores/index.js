@@ -51,7 +51,7 @@ export const useStore = defineStore({
                     type: "paragraph"
                 },
                 {
-                    data: {text: 'You have access to a task queue and archive'},
+                    data: {text: 'You have access to a task queue and archive.'},
                     id: "seYBLpHl2W",
                     type: "paragraph"
                 },
@@ -65,10 +65,8 @@ export const useStore = defineStore({
     ])),
     inProgress: false,
     modal: null,
-    shuffle: useStorage('shuffle', true),
     progressBar: '0px',
     timer: null,
-    shuffleTasks: [],
     color: useStorage('color', colors[0])
   }),
   getters: {
@@ -99,7 +97,7 @@ export const useStore = defineStore({
     getAllTasks: (state) => {
         return state.tasks
     },
-    complete: (state) => {
+    completed: (state) => {
         const tasks = JSON.parse(state.tasks)
         return tasks.find((task) => {
             return task.id === state.currentTaskId
@@ -145,6 +143,7 @@ export const useStore = defineStore({
             }
             return task
         })
+        console.log({tasks})
         this.tasks = JSON.stringify(updatedTasks)
     },
     updateContent(newContent) {
@@ -158,7 +157,9 @@ export const useStore = defineStore({
         this.tasks = JSON.stringify(updatedTasks)
     },
     updateTime(newTime) {
+        this.currentTaskElapsed = 0
         const tasks = JSON.parse(this.tasks)
+        this.elapseTime(0)
         const updatedTasks = tasks.map((task) => {
             if (task.id === this.currentTaskId) {
                 task.time = newTime
@@ -182,14 +183,6 @@ export const useStore = defineStore({
             }]
         })
         this.tasks = JSON.stringify(tasks)
-    },
-    changeTask(newTaskId) {
-      this.pause()
-      this.currentTaskId = newTaskId
-        setTimeout(() => {
-          this.currentTaskElapsed = this.elapsed
-          this.progressBar = 'calc('+this.currentTaskElapsed/this.time*100+'vw - 30px)'
-        }, 0)
     },
     deleteTask(deleteTaskId) {
         const tasks = JSON.parse(this.tasks)
@@ -235,6 +228,14 @@ export const useStore = defineStore({
             return task
         })
         this.tasks = JSON.stringify(updatedTasks)
-    }
+    },
+    changeTask(newTaskId) {
+        this.pause()
+        this.currentTaskId = newTaskId
+        setTimeout(() => {
+            this.currentTaskElapsed = this.elapsed
+            this.progressBar = 'calc('+this.currentTaskElapsed/this.time*100+'vw - 30px)'
+        }, 0)
+    },
   }
 })
