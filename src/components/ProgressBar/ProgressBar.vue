@@ -19,11 +19,6 @@ export default {
   },
   unmounted() {
     this.store.pause()
-  },
-  data() {
-    return {
-      progressBarWidth: '1px',
-    }
   }
 }
 </script>
